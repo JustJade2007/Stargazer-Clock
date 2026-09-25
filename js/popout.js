@@ -748,7 +748,7 @@
 
       const pipWin = state.pipWindow;
       const doc = pipWin.document;
-      const now = new Date();
+      const now = window.StargazerTime ? window.StargazerTime.now() : new Date();
 
       const badgeElem = doc.getElementById('popout-badge');
       const digitsElem = doc.getElementById('popout-digits');

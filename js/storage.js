@@ -41,7 +41,17 @@
     combinedFocal: 'clock',
     centerDisplayMode: 'time', // 'time', 'remaining', 'percent'
     popoutViewMode: 'dial', // 'dial' (semicircle + text) or 'text' (text only)
-    pointerMode: 'auto' // 'auto', 'sun', 'moon', 'orb'
+    pointerMode: 'auto', // 'auto', 'sun', 'moon', 'orb'
+    debugSettings: {
+      enabled: false,
+      isSimulatedTime: false,
+      simulatedDateTime: '',
+      speedMultiplier: 1,
+      timezone: 'auto',
+      customUtcOffset: 0,
+      moonPhaseOverride: null, // null (auto) or 0.0 to 1.0
+      dayNightOverride: 'auto' // 'auto', 'day', 'night'
+    }
   };
 
   const Storage = {

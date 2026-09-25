@@ -34,11 +34,19 @@ Whether run directly in your browser, hosted as a local service, or launched as 
 - **Precision Stopwatch:** Fast elapsed-time counter with lap/split support for tracking focused intervals or activities.
 - **Combined View:** Simultaneous display mode presenting the clock, active timers, and stopwatch within a harmonious dashboard layout.
 
-### 🍪 3. Client-Side Persistence
+### 🛠️ 3. Debug & Time Warp Simulation Engine
+- **Manual Time & Date Overrides:** Test any time of day, calendar date, or hour with immediate synchronized updates across all radial dials and sub-displays.
+- **Time Acceleration Multipliers:** Warp through time at `0x` (freeze), `1x` (realtime), `10x`, `60x` (1 minute/sec), or `1440x` (1 day/min) to preview dial sweeps and day/night transitions effortlessly.
+- **Global Timezone Converter:** Instantly switch between local system time, UTC, NY, LA, London, Paris, Tokyo, Shanghai, India, Sydney, or custom UTC offsets.
+- **Lunar Phase Simulator:** Dial in any moon phase from 0% (New) to 50% (Full) to 100% or click presets to inspect moon shadows and illumination fractions.
+- **Celestial Pointer Force Mode:** Manually force the dial indicator to Sun ☀️, Moon 🌙, or auto day/night tracking.
+- **Interactive Glassmorphic HUD:** Quick toggle via <kbd>D</kbd> or top nav 🛠️ button with persistent floating simulation banner and one-click reset.
+
+### 🍪 4. Client-Side Persistence
 - **Cookie & Local Storage Retention:** Preserves chosen theme accents, display preferences, shift schedules, and custom timer setups locally across launches with zero login required.
 - **Privacy-First:** Operates 100% client-side with no tracking, telemetry, or remote server dependencies.
 
-### 🚀 4. Deployment & Packaging
+### 🚀 5. Deployment & Packaging
 - **GitHub Pages:** Instant, one-click access directly in the web browser without any local installation.
 - **Local Web App:** Lightweight web application that can be run on any local development server.
 - **Desktop Executable:** Packaged as a standalone Windows executable (`.exe`) optimized to run as a borderless or floating ambient widget.
@@ -135,6 +143,7 @@ Outputs: `dist/Stargazer-Clock.exe` (Standalone windowed application with embedd
 | <kbd>L</kbd> | Record lap split (Stopwatch mode) |
 | <kbd>T</kbd> | Cycle center display (Current Time ⇄ Time Left ⇄ %) |
 | <kbd>P</kbd> | Pop out / dock floating clock window (Always on Top) |
+| <kbd>D</kbd> | Toggle Debug & Time Warp Simulation HUD |
 | <kbd>1</kbd> - <kbd>5</kbd> | Quick switch between Clock, Shift, Timer, Stopwatch, and Combined |
 | <kbd>F11</kbd> | Toggle ambient fullscreen mode |
 
@@ -151,6 +160,7 @@ Outputs: `dist/Stargazer-Clock.exe` (Standalone windowed application with embedd
 - [x] Web Audio API synthetic celestial chime notifications on timer completion.
 - [x] Standalone desktop package build script (`dist/Stargazer-Clock.exe`).
 - [x] Pop out floating clock with OS-level always-on-top window pinning.
+- [x] Debug simulation engine for time warping, timezones, moon stages, and sun/moon overrides.
 - [ ] Automated GitHub Pages deployment workflow.
 
 ---

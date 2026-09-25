@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-09-25
+
+### Added
+- **Debug & Time Warp Simulation Engine (`js/debug.js`, `index.html`, `css/style.css`, `js/app.js`, `js/semicircle.js`, `js/storage.js`)**:
+  - **Manual Time & Date Overrides**: Full control to set specific target clock hours, minutes, seconds, and calendar dates with instant feedback on all dial trackers.
+  - **Live Time Acceleration (Warp Speed Multipliers)**: Interactive speed chips for `0x Freeze`, `1x Realtime`, `10x`, `60x` (1 minute elapsed per second), and `1440x` (1 full day elapsed per minute) to stress-test celestial transitions and dial sweep behavior.
+  - **Celestial Preset Jumps**: One-click quick-jump buttons to `🌅 Dawn (06:00)`, `☀️ Noon (12:00)`, `🌇 Dusk (18:00)`, and `🌙 Midnight (00:00)`.
+  - **Global Timezone Overrides**: Dynamic timezone conversion supporting local system time, UTC/GMT, New York, Chicago, Denver, Los Angeles, London, Paris, Tokyo, Shanghai, India, Sydney, and arbitrary decimal custom UTC offsets (±14h).
+  - **Manual Moon Stage & Lunar Phase Simulator**: Real-time slider (0% to 100%) and 8 phase presets (`🌑 New Moon`, `🌒 Waxing Crescent`, `🌓 First Quarter`, `🌔 Waxing Gibbous`, `🌕 Full Moon`, `🌖 Waning Gibbous`, `🌗 Last Quarter`, `🌘 Waning Crescent`, and `🔄 Auto Live Ephemeris`). Directly overrides dial pointer lunar renderings, illumination fractions, and status text.
+  - **Celestial Pointer Force Mode**: Force the dial indicator to `☀️ Sun`, `🌙 Moon`, or `Auto` day/night tracking.
+  - **Floating Glassmorphic Debug HUD**: Press <kbd>D</kbd> or click the 🛠️ icon in the top header or settings dialog to display an interactive, draggable glassmorphic HUD panel with live time readouts, speed chips, and instant resets.
+  - **Persistent Simulation Active Banner**: Luminous floating cosmic pill at the top of the screen clearly indicating simulated time is active, with 1-click `Controls` and `Reset Time` actions to ensure users never remain trapped in simulated time.
+  - **Centralized StargazerTime Provider**: Synchronized time provider used across Clock, Shift Tracker, Target Countdowns, Ephemeris, Dials, and Popout Floating Windows.
+
 ## [0.6.0] - 2026-09-25
 
 ### Fixed

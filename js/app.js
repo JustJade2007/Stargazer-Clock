@@ -226,6 +226,12 @@
     elements.btnExportSettings = document.getElementById('btn-export-settings');
     elements.inputImportSettings = document.getElementById('input-import-settings');
     elements.btnResetSettings = document.getElementById('btn-reset-settings');
+
+    // Debug Simulation Controls
+    elements.btnDebugHud = document.getElementById('btn-debug-hud');
+    elements.btnOpenDebugHud = document.getElementById('btn-open-debug-hud');
+    elements.btnResetDebugSim = document.getElementById('btn-reset-debug-sim');
+    elements.settingDebugStatus = document.getElementById('setting-debug-status');
   }
 
   /**
@@ -233,6 +239,11 @@
    */
   function loadPersistentSettings() {
     state.settings = window.StargazerStorage.loadSettings();
+
+    // Initialize Debug & Simulation engine
+    if (window.StargazerDebug) {
+      window.StargazerDebug.init(state.settings.debugSettings || {});
+    }
 
     // Apply theme
     applyTheme(state.settings.theme);
@@ -476,10 +487,17 @@
   }
 
   /**
+   * Central Time Getter (Supports Simulated Time, Time Warping, & Timezones)
+   */
+  function getNow() {
+    return window.StargazerTime ? window.StargazerTime.now() : new Date();
+  }
+
+  /**
    * Update Ephemeris (Sun & Moon phase preview)
    */
   function updateEphemerisPreview() {
-    const now = new Date();
+    const now = getNow();
     const moon = window.StargazerMoon.calculateMoonPhase(now);
     const isDay = window.StargazerMoon.isDaytime(now);
 
@@ -535,7 +553,7 @@
    * Standard Clock Tick & Calculation
    */
   function tickClock() {
-    const now = new Date();
+    const now = getNow();
     const formattedTime = formatCurrentTimeString(now);
 
     // Date
@@ -623,6 +641,18 @@
     }
 
     updateEphemerisPreview();
+
+    // Update Debug simulation status in Settings modal if element exists
+    if (elements.settingDebugStatus && window.StargazerDebug) {
+      const isSim = window.StargazerDebug.isEnabled();
+      elements.settingDebugStatus.textContent = isSim ? '⚡ Simulated Active' : 'Live System Time';
+      elements.settingDebugStatus.style.color = isSim ? '#ffd54f' : 'var(--text-accent)';
+    }
+
+    // Keep floating HUD time readout in-sync
+    if (window.StargazerDebug) {
+      window.StargazerDebug.updateHudUi();
+    }
 
     // Update Pop Out window if open
     if (window.StargazerPopout && window.StargazerPopout.isPopoutOpen()) {
@@ -836,7 +866,7 @@
 
     const progress = state.timer.totalSeconds > 0 ? (rem / state.timer.totalSeconds) : 0;
     const pctText = `${(progress * 100).toFixed(1)}%`;
-    const now = new Date();
+    const now = getNow();
 
     // Timer Center Display Swapping: Remaining / Percent / Current Time
     if (state.timerCenterDisplay === 'remaining') {
@@ -925,7 +955,7 @@
    * Target Countdown / Time Until Calculations & Display
    */
   function tickTargetCountdown(now, formattedTime) {
-    if (!now) now = new Date();
+    if (!now) now = getNow();
     if (!formattedTime) formattedTime = formatCurrentTimeString(now);
 
     const title = (state.targetCountdown.title || 'Target Event').trim();
@@ -1043,7 +1073,7 @@
     const mStr = String(dateObj.getMinutes()).padStart(2, '0');
     const timeFormatted = `${hStr}:${mStr}${ampm}`;
 
-    const today = new Date();
+    const today = getNow();
     const isToday = dateObj.getDate() === today.getDate() &&
                     dateObj.getMonth() === today.getMonth() &&
                     dateObj.getFullYear() === today.getFullYear();
@@ -1168,7 +1198,7 @@
 
     // Dial sweeps 60 seconds per loop
     const progress = (state.stopwatch.elapsedTime % 60000) / 60000;
-    const now = new Date();
+    const now = getNow();
     if (dialStopwatch) dialStopwatch.setProgress(progress, false, now);
     if (dialCombStopwatch) dialCombStopwatch.setProgress(progress, false, now);
   }
@@ -1359,7 +1389,7 @@
           btn.classList.add('active');
 
           const preset = btn.dataset.targetPreset;
-          const now = new Date();
+          const now = getNow();
 
           if (preset === 'next-hour') {
             const nextHour = new Date(now);
@@ -1501,6 +1531,27 @@
         setMode('clock');
       }
     });
+
+    // Debug HUD Nav Button & Dialog Actions
+    if (elements.btnDebugHud) {
+      elements.btnDebugHud.addEventListener('click', () => {
+        if (window.StargazerDebug) window.StargazerDebug.toggleHud();
+      });
+    }
+    if (elements.btnOpenDebugHud) {
+      elements.btnOpenDebugHud.addEventListener('click', () => {
+        if (elements.settingsDialog) elements.settingsDialog.close();
+        if (window.StargazerDebug) window.StargazerDebug.toggleHud();
+      });
+    }
+    if (elements.btnResetDebugSim) {
+      elements.btnResetDebugSim.addEventListener('click', () => {
+        if (window.StargazerDebug) {
+          window.StargazerDebug.resetAll();
+          if (elements.settingDebugStatus) elements.settingDebugStatus.textContent = 'Live System Time';
+        }
+      });
+    }
   }
 
   /**
@@ -1584,6 +1635,13 @@
       if (e.code === 'KeyP') {
         if (window.StargazerPopout) {
           window.StargazerPopout.toggle();
+        }
+      }
+
+      // 'D': Toggle Debug & Time Warp HUD
+      if (e.code === 'KeyD') {
+        if (window.StargazerDebug) {
+          window.StargazerDebug.toggleHud();
         }
       }
 

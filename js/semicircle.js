@@ -14,12 +14,21 @@
   const SYNODIC_PERIOD_MS = 29.53058867 * 86400 * 1000;
 
   /**
-   * Astronomical Lunar Phase Calculator
+   * Astronomical Lunar Phase Calculator (with Debug Override Support)
    */
-  function calculateMoonPhase(date = new Date()) {
-    const diff = date.getTime() - REF_NEW_MOON_EPOCH;
-    let phase = (diff % SYNODIC_PERIOD_MS) / SYNODIC_PERIOD_MS;
-    if (phase < 0) phase += 1;
+  function calculateMoonPhase(date = (window.StargazerTime ? window.StargazerTime.now() : new Date())) {
+    let phase = 0;
+
+    // Check if debug simulation has overridden moon phase
+    if (window.StargazerDebug && window.StargazerDebug.getMoonPhaseOverride() !== null) {
+      phase = window.StargazerDebug.getMoonPhaseOverride();
+      if (phase < 0) phase = 0;
+      if (phase > 1) phase = 1;
+    } else {
+      const diff = date.getTime() - REF_NEW_MOON_EPOCH;
+      phase = (diff % SYNODIC_PERIOD_MS) / SYNODIC_PERIOD_MS;
+      if (phase < 0) phase += 1;
+    }
 
     // Illuminated fraction
     const angle = phase * 2 * Math.PI;
@@ -63,9 +72,14 @@
   }
 
   /**
-   * Day/Night Detector
+   * Day/Night Detector (with Debug Override Support)
    */
-  function isDaytime(date = new Date()) {
+  function isDaytime(date = (window.StargazerTime ? window.StargazerTime.now() : new Date())) {
+    if (window.StargazerDebug) {
+      const dn = window.StargazerDebug.getDayNightOverride();
+      if (dn === 'day') return true;
+      if (dn === 'night') return false;
+    }
     const hours = date.getHours() + (date.getMinutes() / 60);
     return hours >= 6.0 && hours < 18.0;
   }
@@ -98,7 +112,7 @@
 
       this.currentProgress = 0; // 0.0 to 1.0
       this.targetProgress = 0;
-      this.currentDate = new Date();
+      this.currentDate = window.StargazerTime ? window.StargazerTime.now() : new Date();
       this.dpr = Math.min(window.devicePixelRatio || 1, 2);
 
       this.init();
@@ -127,7 +141,7 @@
     /**
      * Set progress percentage (0.0 to 1.0) with optional smooth animation
      */
-    setProgress(progress, immediate = false, date = new Date()) {
+    setProgress(progress, immediate = false, date = (window.StargazerTime ? window.StargazerTime.now() : new Date())) {
       const clamped = Math.max(0, Math.min(1, progress));
       this.targetProgress = clamped;
       this.currentDate = date;
