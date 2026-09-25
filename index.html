@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stargazer Clock 🌌 | Semicircle Clock & Celestial Tracker</title>
+  <meta name="description" content="A customizable semicircle clock, shift timeframe tracker, countdown timer, and stopwatch with an ambient starry cosmic backdrop.">
+  <meta name="theme-color" content="#090a16">
+  
+  <!-- Web fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/png" href="assets/icon.png">
+  <link rel="apple-touch-icon" href="assets/icon.png">
+  <link rel="shortcut icon" href="assets/icon.ico">
+</head>
+<body data-theme="cyan">
+  <!-- Starfield Canvas Backdrop -->
+  <canvas id="starfield-canvas" class="starfield-canvas" aria-hidden="true"></canvas>
+
+  <div class="app-layout">
+    <!-- Top Navigation / Mode Bar -->
+    <header class="top-nav" role="banner">
+      <div class="nav-brand">
+        <img src="assets/icon.png" alt="Stargazer Moon and Galaxy Icon" class="brand-logo-img">
+        <span class="brand-title">Stargazer <span class="brand-subtitle">Clock</span></span>
+      </div>
+
+      <!-- Mode Selector Navigation -->
+      <nav class="mode-bar" aria-label="Clock modes">
+        <button type="button" class="mode-btn active" data-mode="clock" id="nav-btn-clock">
+          <span class="mode-icon">🕐</span>
+          <span class="mode-text">Clock</span>
+        </button>
+        <button type="button" class="mode-btn" data-mode="shift" id="nav-btn-shift">
+          <span class="mode-icon">📊</span>
+          <span class="mode-text">Shift Tracker</span>
+        </button>
+        <button type="button" class="mode-btn" data-mode="timer" id="nav-btn-timer">
+          <span class="mode-icon">⏳</span>
+          <span class="mode-text">Timer</span>
+        </button>
+        <button type="button" class="mode-btn" data-mode="stopwatch" id="nav-btn-stopwatch">
+          <span class="mode-icon">⏱️</span>
+          <span class="mode-text">Stopwatch</span>
+        </button>
+        <button type="button" class="mode-btn" data-mode="combined" id="nav-btn-combined">
+          <span class="mode-icon">🎛️</span>
+          <span class="mode-text">Combined</span>
+        </button>
+      </nav>
+
+      <!-- Utility actions -->
+      <div class="nav-actions">
+        <button type="button" class="nav-action-btn" id="btn-popout" title="Pop Out Clock Window (Always on Top) [P]" aria-label="Pop Out Clock Window">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h6v6m-11 5L21 3m-3 10v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          </svg>
+        </button>
+        <button type="button" class="nav-action-btn" id="btn-fullscreen" title="Toggle Fullscreen (F11)" aria-label="Toggle Fullscreen">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+        </button>
+        <button type="button" class="nav-action-btn" id="btn-sound-toggle" title="Toggle Sound Chime" aria-label="Toggle Sound Chime">
+          <span id="sound-icon">🔔</span>
+        </button>
+        <button type="button" class="nav-action-btn" id="btn-debug-hud" title="Debug & Time Simulation [D]" aria-label="Open Debug Simulation HUD">
+          <span id="debug-nav-icon">🛠️</span>
+        </button>
+        <button type="button" class="nav-action-btn" id="btn-settings" title="Settings" aria-label="Open Settings">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="main-display" id="main-display" role="main">
+      <!-- Mode 1: Standard Clock View -->
+      <section class="mode-view view-active" id="view-clock" aria-label="Standard Clock View">
+        <div class="dial-container">
+          <div class="semicircle-wrapper">
+            <canvas id="dial-canvas-clock" class="dial-canvas"></canvas>
+            <div class="dial-center-content dial-center-clickable" id="clock-center-click-area" title="Click to cycle display: Current Time ⇄ Time Left ⇄ Percentage" tabindex="0" role="button" aria-label="Cycle display between Current Time, Time Left, and Percentage">
+              <div class="dial-sub-badge" id="clock-mode-label">CURRENT TIME</div>
+              <div class="dial-digital-time" id="clock-digital-time">12:00:00</div>
+              <div class="dial-date" id="clock-date">Friday, September 25, 2026</div>
+              <div class="dial-swap-hint"><span class="swap-icon">⇄</span> Click to switch: Time / Left / %</div>
+              <div class="dial-status-pill" id="clock-status-pill">
+                <span class="status-dot"></span>
+                <span id="clock-arc-label">Day Progress: 50.0%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="view-controls clock-controls">
+            <!-- Center Display Selector -->
+            <div class="control-row">
+              <span class="control-label">Center Display:</span>
+              <div class="control-segmented" role="group" aria-label="Clock Center Display">
+                <button type="button" class="seg-btn active" data-clock-center="time" id="btn-clock-center-time">Current Time</button>
+                <button type="button" class="seg-btn" data-clock-center="remaining" id="btn-clock-center-rem">Time Left</button>
+                <button type="button" class="seg-btn" data-clock-center="percent" id="btn-clock-center-pct">Percentage</button>
+              </div>
+            </div>
+
+            <!-- Clock Arc Scope Selector -->
+            <div class="control-row">
+              <span class="control-label">Arc Scope:</span>
+              <div class="control-segmented" role="group" aria-label="Clock Arc Mode">
+                <button type="button" class="seg-btn active" data-clock-arc="day" id="btn-clock-arc-day">Day (24h)</button>
+                <button type="button" class="seg-btn" data-clock-arc="hour" id="btn-clock-arc-hour">Hour (60m)</button>
+                <button type="button" class="seg-btn" data-clock-arc="halfday" id="btn-clock-arc-halfday">12h Arc</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mode 2: Shift / Timeframe Tracker View -->
+      <section class="mode-view" id="view-shift" aria-label="Shift Timeframe Tracker View">
+        <div class="dial-container">
+          <div class="semicircle-wrapper">
+            <canvas id="dial-canvas-shift" class="dial-canvas"></canvas>
+            <div class="dial-center-content dial-center-clickable" id="shift-center-click-area" title="Click to cycle display: Percentage ⇄ Time Left ⇄ Current Time" tabindex="0" role="button" aria-label="Cycle display between Percentage, Time Left, and Current Time">
+              <div class="dial-sub-badge" id="shift-name-label">WORKDAY SHIFT</div>
+              <div class="dial-digital-time" id="shift-progress-percent">0.0%</div>
+              <div class="shift-stats-row">
+                <div class="stat-item">
+                  <span class="stat-label">Elapsed</span>
+                  <span class="stat-value" id="shift-elapsed">0h 00m</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                  <span class="stat-label">Remaining</span>
+                  <span class="stat-value" id="shift-remaining">8h 00m</span>
+                </div>
+              </div>
+              <div class="dial-swap-hint"><span class="swap-icon">⇄</span> Click to switch: % / Left / Time</div>
+              <div class="dial-status-pill" id="shift-status-pill">
+                <span class="status-dot"></span>
+                <span id="shift-status-text">Starts at 08:00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="view-controls shift-controls">
+            <!-- Center Display Selector -->
+            <div class="control-row">
+              <span class="control-label">Center Display:</span>
+              <div class="control-segmented" role="group" aria-label="Shift Center Display">
+                <button type="button" class="seg-btn active" data-shift-center="percent" id="btn-shift-center-pct">Percentage</button>
+                <button type="button" class="seg-btn" data-shift-center="remaining" id="btn-shift-center-rem">Time Left</button>
+                <button type="button" class="seg-btn" data-shift-center="time" id="btn-shift-center-time">Current Time</button>
+              </div>
+            </div>
+            <div class="shift-inputs-card">
+              <div class="input-group">
+                <label for="shift-input-title">Label</label>
+                <input type="text" id="shift-input-title" value="Workday Shift" maxlength="24">
+              </div>
+              <div class="input-group">
+                <label for="shift-input-start">Start Time</label>
+                <input type="time" id="shift-input-start" value="08:00">
+              </div>
+              <div class="input-group">
+                <label for="shift-input-end">End Time</label>
+                <input type="time" id="shift-input-end" value="17:00">
+              </div>
+              <button type="button" class="btn-action primary" id="btn-save-shift">Update Shift</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mode 3: Countdown Timer View -->
+      <section class="mode-view" id="view-timer" aria-label="Countdown Timer View">
+        <div class="dial-container">
+          <div class="semicircle-wrapper">
+            <canvas id="dial-canvas-timer" class="dial-canvas"></canvas>
+            <div class="dial-center-content dial-center-clickable" id="timer-center-click-area" title="Click to cycle display: Time Left ⇄ Percentage ⇄ Current Time" tabindex="0" role="button" aria-label="Cycle display between Time Left, Percentage, and Current Time">
+              <div class="dial-sub-badge" id="timer-title-badge">COUNTDOWN TIMER</div>
+              <div class="dial-digital-time timer-digits" id="timer-display">25:00</div>
+              <div class="timer-remaining-sub" id="timer-sub-text">Total: 25 minutes</div>
+              <div class="dial-swap-hint"><span class="swap-icon">⇄</span> Click to switch: Left / % / Time</div>
+              <div class="dial-status-pill" id="timer-status-pill">
+                <span class="status-dot"></span>
+                <span id="timer-status-text">Ready</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="view-controls timer-controls">
+            <!-- Timer Sub-Mode Switcher: Duration Timer vs Time Until / Countdown -->
+            <div class="control-row">
+              <span class="control-label">Mode:</span>
+              <div class="control-segmented" role="group" aria-label="Timer Sub-Mode">
+                <button type="button" class="seg-btn active" data-timer-submode="duration" id="btn-submode-duration">⏳ Duration Timer</button>
+                <button type="button" class="seg-btn" data-timer-submode="target" id="btn-submode-target">🎯 Time Until / Countdown</button>
+              </div>
+            </div>
+
+            <!-- Center Display Selector -->
+            <div class="control-row">
+              <span class="control-label">Center Display:</span>
+              <div class="control-segmented" role="group" aria-label="Timer Center Display">
+                <button type="button" class="seg-btn active" data-timer-center="remaining" id="btn-timer-center-rem">Time Left</button>
+                <button type="button" class="seg-btn" data-timer-center="percent" id="btn-timer-center-pct">Percentage</button>
+                <button type="button" class="seg-btn" data-timer-center="time" id="btn-timer-center-time">Current Time</button>
+              </div>
+            </div>
+
+            <!-- Subpanel 1: Duration Timer Controls -->
+            <div id="panel-timer-duration" class="timer-subpanel">
+              <div class="timer-presets" role="group" aria-label="Timer presets">
+                <button type="button" class="preset-chip active" data-minutes="25">🍅 Pomodoro 25m</button>
+                <button type="button" class="preset-chip" data-minutes="5">☕ Break 5m</button>
+                <button type="button" class="preset-chip" data-minutes="15">🌿 Rest 15m</button>
+                <button type="button" class="preset-chip" data-minutes="45">🎯 Focus 45m</button>
+                <button type="button" class="preset-chip" data-minutes="60">🚀 Sprint 60m</button>
+              </div>
+
+              <div class="timer-custom-inputs" id="timer-custom-row">
+                <div class="time-spinner">
+                  <input type="number" id="timer-input-h" min="0" max="99" value="0" aria-label="Hours">
+                  <span>h</span>
+                </div>
+                <span class="time-sep">:</span>
+                <div class="time-spinner">
+                  <input type="number" id="timer-input-m" min="0" max="59" value="25" aria-label="Minutes">
+                  <span>m</span>
+                </div>
+                <span class="time-sep">:</span>
+                <div class="time-spinner">
+                  <input type="number" id="timer-input-s" min="0" max="59" value="0" aria-label="Seconds">
+                  <span>s</span>
+                </div>
+                <button type="button" class="btn-action secondary" id="btn-set-custom-timer">Set</button>
+              </div>
+
+              <div class="timer-action-buttons">
+                <button type="button" class="btn-action primary btn-lg" id="btn-timer-toggle">
+                  <span id="timer-toggle-icon">▶</span>
+                  <span id="timer-toggle-label">Start</span>
+                </button>
+                <button type="button" class="btn-action outline btn-lg" id="btn-timer-reset">Reset</button>
+              </div>
+            </div>
+
+            <!-- Subpanel 2: Time Until / Event Countdown Controls -->
+            <div id="panel-timer-target" class="timer-subpanel" style="display: none;">
+              <!-- Quick Target Presets -->
+              <div class="timer-presets" role="group" aria-label="Target presets">
+                <button type="button" class="preset-chip" data-target-preset="next-hour">🔔 Next Hour</button>
+                <button type="button" class="preset-chip" data-target-preset="noon">🥪 Noon (12:00)</button>
+                <button type="button" class="preset-chip" data-target-preset="evening">🚪 5:00 PM</button>
+                <button type="button" class="preset-chip" data-target-preset="midnight">🌙 Midnight (00:00)</button>
+                <button type="button" class="preset-chip" data-target-preset="tomorrow-morning">☀️ Tomorrow 9 AM</button>
+              </div>
+
+              <div class="shift-inputs-card target-inputs-card">
+                <div class="input-group">
+                  <label for="target-input-title">Event Title</label>
+                  <input type="text" id="target-input-title" value="Target Countdown" maxlength="28" placeholder="e.g. End of Day, Launch">
+                </div>
+                <div class="input-group">
+                  <label for="target-input-time">Target Time</label>
+                  <input type="time" id="target-input-time" value="17:00">
+                </div>
+                <div class="input-group">
+                  <label for="target-input-date">Target Date (Optional)</label>
+                  <input type="date" id="target-input-date">
+                </div>
+                <button type="button" class="btn-action primary" id="btn-set-target-countdown">Set Countdown</button>
+                <button type="button" class="btn-action outline" id="btn-clear-target-countdown">Clear Target</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mode 4: Stopwatch View -->
+      <section class="mode-view" id="view-stopwatch" aria-label="Stopwatch View">
+        <div class="dial-container">
+          <div class="semicircle-wrapper">
+            <canvas id="dial-canvas-stopwatch" class="dial-canvas"></canvas>
+            <div class="dial-center-content">
+              <div class="dial-sub-badge">PRECISION STOPWATCH</div>
+              <div class="dial-digital-time stopwatch-digits" id="stopwatch-display">00:00.00</div>
+              <div class="stopwatch-lap-count" id="stopwatch-lap-count">Lap 0</div>
+              <div class="dial-status-pill" id="stopwatch-status-pill">
+                <span class="status-dot"></span>
+                <span id="stopwatch-status-text">Stopped</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="view-controls stopwatch-controls">
+            <div class="stopwatch-actions">
+              <button type="button" class="btn-action primary btn-lg" id="btn-stopwatch-toggle">
+                <span id="stopwatch-toggle-icon">▶</span>
+                <span id="stopwatch-toggle-label">Start</span>
+              </button>
+              <button type="button" class="btn-action secondary btn-lg" id="btn-stopwatch-lap" disabled>Lap</button>
+              <button type="button" class="btn-action outline btn-lg" id="btn-stopwatch-reset">Reset</button>
+            </div>
+
+            <div class="laps-container" id="laps-container" aria-live="polite">
+              <div class="laps-header">
+                <span>Lap #</span>
+                <span>Split</span>
+                <span>Total</span>
+              </div>
+              <ul class="laps-list" id="laps-list">
+                <li class="lap-empty">No laps recorded</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mode 5: Combined Dashboard View -->
+      <section class="mode-view" id="view-combined" aria-label="Combined Multi-Widget View">
+        <div class="combined-dashboard">
+          <!-- Primary Focal Dial (Clock or Shift) -->
+          <div class="combined-card primary-card">
+            <div class="card-header">
+              <span class="card-title">🌌 Celestial Master Dial</span>
+              <div class="control-segmented mini" role="group">
+                <button type="button" class="seg-btn active" id="btn-comb-focal-clock">Clock</button>
+                <button type="button" class="seg-btn" id="btn-comb-focal-shift">Shift</button>
+              </div>
+            </div>
+            <div class="semicircle-wrapper comb-focal-wrapper">
+              <canvas id="dial-canvas-combined-focal" class="dial-canvas"></canvas>
+              <div class="dial-center-content dial-center-clickable" id="comb-center-click-area" title="Click to cycle display: Time / Left / %" tabindex="0" role="button" aria-label="Cycle display between Time, Time Left, and Percentage">
+                <div class="dial-sub-badge" id="comb-focal-badge">CURRENT TIME</div>
+                <div class="dial-digital-time" id="comb-focal-digital">12:00:00</div>
+                <div class="dial-date" id="comb-focal-sub">Friday, September 25, 2026</div>
+                <div class="dial-swap-hint"><span class="swap-icon">⇄</span> Click to switch: Time / Left / %</div>
+                <div class="dial-status-pill" id="comb-focal-status">
+                  <span class="status-dot"></span>
+                  <span id="comb-focal-status-text">Active</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Secondary Grid Cards -->
+          <div class="combined-side-grid">
+            <!-- Mini Timer Card -->
+            <div class="combined-card mini-card" id="comb-timer-card">
+              <div class="card-header">
+                <span class="card-title">⏳ Countdown Timer</span>
+                <span class="mini-status" id="comb-timer-status">Idle</span>
+              </div>
+              <div class="mini-dial-wrapper">
+                <canvas id="dial-canvas-comb-timer" class="dial-canvas-mini"></canvas>
+                <div class="mini-dial-content">
+                  <div class="mini-digits" id="comb-timer-digits">25:00</div>
+                </div>
+              </div>
+              <div class="mini-actions">
+                <button type="button" class="btn-action primary btn-sm" id="btn-comb-timer-toggle">Start</button>
+                <button type="button" class="btn-action outline btn-sm" id="btn-comb-timer-reset">Reset</button>
+              </div>
+            </div>
+
+            <!-- Mini Stopwatch Card -->
+            <div class="combined-card mini-card" id="comb-stopwatch-card">
+              <div class="card-header">
+                <span class="card-title">⏱️ Stopwatch</span>
+                <span class="mini-status" id="comb-stopwatch-status">Stopped</span>
+              </div>
+              <div class="mini-dial-wrapper">
+                <canvas id="dial-canvas-comb-stopwatch" class="dial-canvas-mini"></canvas>
+                <div class="mini-dial-content">
+                  <div class="mini-digits" id="comb-stopwatch-digits">00:00.00</div>
+                </div>
+              </div>
+              <div class="mini-actions">
+                <button type="button" class="btn-action primary btn-sm" id="btn-comb-stopwatch-toggle">Start</button>
+                <button type="button" class="btn-action outline btn-sm" id="btn-comb-stopwatch-reset">Reset</button>
+              </div>
+            </div>
+
+            <!-- Mini Shift Summary Card -->
+            <div class="combined-card mini-card shift-summary-card" id="comb-shift-card">
+              <div class="card-header">
+                <span class="card-title">📊 Shift Progress</span>
+                <span class="mini-status" id="comb-shift-status">08:00 - 17:00</span>
+              </div>
+              <div class="mini-dial-wrapper">
+                <canvas id="dial-canvas-comb-shift" class="dial-canvas-mini"></canvas>
+                <div class="mini-dial-content">
+                  <div class="mini-digits" id="comb-shift-digits">0.0%</div>
+                </div>
+              </div>
+              <div class="mini-stats-summary">
+                <div class="summary-line"><span>Remaining:</span> <strong id="comb-shift-remaining">--</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Status / Ambient Bar -->
+    <footer class="bottom-bar">
+      <div class="status-left">
+        <span class="pulse-indicator"></span>
+        <span id="footer-connection-status">Celestial Engine Running</span>
+        <span class="status-separator">|</span>
+        <span class="celestial-badge" id="footer-celestial-status">🌙 Moon: Loading Phase...</span>
+      </div>
+      <div class="status-center">
+        <span class="footer-tip">Keyboard: <kbd>Space</kbd> Toggle | <kbd>R</kbd> Reset | <kbd>1-5</kbd> Switch Modes</span>
+      </div>
+      <div class="status-right">
+        <span class="cookie-indicator" id="cookie-status-badge" title="Preferences synced via browser cookies & localStorage">
+          🍪 Cookies Synced
+        </span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Settings Dialog (Modal) -->
+  <dialog id="settings-dialog" class="settings-modal" aria-labelledby="settings-title">
+    <div class="modal-backdrop-blur">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="modal-icon">⚙️</span>
+            <h2 id="settings-title">Stargazer Preferences</h2>
+          </div>
+          <button type="button" class="modal-close-btn" id="btn-close-settings" aria-label="Close settings">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Aesthetics & Theme -->
+          <div class="settings-section">
+            <h3 class="section-title">Cosmic Theme & Color Accent</h3>
+            <div class="theme-picker" role="radiogroup" aria-label="Cosmic theme selection">
+              <button type="button" class="theme-swatch active" data-theme="cyan" title="Cyan Nebula">
+                <span class="swatch-color" style="background: linear-gradient(135deg, #00f2fe, #4facfe);"></span>
+                <span class="swatch-name">Cyan Nebula</span>
+              </button>
+              <button type="button" class="theme-swatch" data-theme="violet" title="Deep Cosmos">
+                <span class="swatch-color" style="background: linear-gradient(135deg, #b388ff, #7c4dff);"></span>
+                <span class="swatch-name">Deep Cosmos</span>
+              </button>
+              <button type="button" class="theme-swatch" data-theme="amber" title="Solar Flare">
+                <span class="swatch-color" style="background: linear-gradient(135deg, #ffb300, #ff6f00);"></span>
+                <span class="swatch-name">Solar Flare</span>
+              </button>
+              <button type="button" class="theme-swatch" data-theme="emerald" title="Aurora Borealis">
+                <span class="swatch-color" style="background: linear-gradient(135deg, #00e676, #00b0ff);"></span>
+                <span class="swatch-name">Aurora Glow</span>
+              </button>
+              <button type="button" class="theme-swatch" data-theme="crimson" title="Starlight Crimson">
+                <span class="swatch-color" style="background: linear-gradient(135deg, #ff5252, #ff1744);"></span>
+                <span class="swatch-name">Supernova</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Celestial Pointer: Sun / Moon Phase -->
+          <div class="settings-section">
+            <h3 class="section-title">Celestial Pointer & Ephemeris</h3>
+            <div class="settings-row">
+              <label for="setting-pointer-mode">Indicator Symbol</label>
+              <select id="setting-pointer-mode" class="select-input">
+                <option value="auto" selected>Auto (Sun Daytime / Moon Night)</option>
+                <option value="moon">Always Moon 🌙 (Live Phase)</option>
+                <option value="sun">Always Sun ☀️</option>
+                <option value="orb">Classic Glowing Orb ⚪</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <span>Current Moon Phase</span>
+              <span class="text-accent" id="setting-moon-phase-preview">Calculating...</span>
+            </div>
+            <div class="settings-row">
+              <span>Day / Night State</span>
+              <span class="text-accent" id="setting-daynight-preview">Day / Night</span>
+            </div>
+          </div>
+
+          <!-- Starry Canvas Options -->
+          <div class="settings-section">
+            <h3 class="section-title">Starry Cosmos Backdrop</h3>
+            <div class="settings-row">
+              <label for="setting-star-density">Star Density</label>
+              <select id="setting-star-density" class="select-input">
+                <option value="low">Sparse (Low CPU)</option>
+                <option value="medium" selected>Balanced Cosmic</option>
+                <option value="high">Dense Galaxy</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <label for="setting-shooting-stars">Meteors / Shooting Stars</label>
+              <input type="checkbox" id="setting-shooting-stars" class="toggle-checkbox" checked>
+            </div>
+            <div class="settings-row">
+              <label for="setting-parallax">Mouse Motion Parallax</label>
+              <input type="checkbox" id="setting-parallax" class="toggle-checkbox" checked>
+            </div>
+          </div>
+
+          <!-- Clock Formatting -->
+          <div class="settings-section">
+            <h3 class="section-title">Clock & Display Settings</h3>
+            <div class="settings-row">
+              <label for="setting-center-display">Default Center Display</label>
+              <select id="setting-center-display" class="select-input">
+                <option value="time" selected>Current Time</option>
+                <option value="remaining">Time Remaining</option>
+                <option value="percent">Percentage (%)</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <span>Always-on-Top Pop Out</span>
+              <button type="button" class="btn-action secondary btn-sm" id="btn-settings-popout">Launch Floating Clock [P]</button>
+            </div>
+            <div class="settings-row">
+              <label for="setting-time-format">Time Format</label>
+              <select id="setting-time-format" class="select-input">
+                <option value="12" selected>12-Hour (12:00:00 PM)</option>
+                <option value="24">24-Hour (24:00:00)</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <label for="setting-show-seconds">Show Seconds</label>
+              <input type="checkbox" id="setting-show-seconds" class="toggle-checkbox" checked>
+            </div>
+            <div class="settings-row">
+              <label for="setting-show-date">Show Full Date</label>
+              <input type="checkbox" id="setting-show-date" class="toggle-checkbox" checked>
+            </div>
+          </div>
+
+          <!-- Sound & Notifications -->
+          <div class="settings-section">
+            <h3 class="section-title">Sound & Notifications</h3>
+            <div class="settings-row">
+              <label for="setting-sound-enabled">Timer Completion Chime</label>
+              <input type="checkbox" id="setting-sound-enabled" class="toggle-checkbox" checked>
+            </div>
+            <div class="settings-row">
+              <label for="setting-sound-volume">Chime Volume</label>
+              <input type="range" id="setting-sound-volume" min="0" max="100" value="70" class="range-slider">
+            </div>
+            <div class="settings-row">
+              <button type="button" class="btn-action secondary btn-sm" id="btn-test-chime">Test Chime 🔔</button>
+            </div>
+          </div>
+
+          <!-- Debug & Celestial Simulation -->
+          <div class="settings-section">
+            <h3 class="section-title">Debug & Time Simulation</h3>
+            <p class="settings-description">
+              Manually set the clock time, timezone, speed multiplier, moon stage, or celestial pointer state for testing and astronomy previews.
+            </p>
+            <div class="settings-row">
+              <span>Simulation Status</span>
+              <span id="setting-debug-status" class="text-accent">Live System Time</span>
+            </div>
+            <div class="settings-actions-row">
+              <button type="button" class="btn-action primary btn-sm" id="btn-open-debug-hud">Open Debug Controls [D]</button>
+              <button type="button" class="btn-action outline btn-sm" id="btn-reset-debug-sim">Reset to Real Time</button>
+            </div>
+          </div>
+
+          <!-- Persistence Info & Actions -->
+          <div class="settings-section">
+            <h3 class="section-title">Client-Side Persistence</h3>
+            <p class="settings-description">
+              Preferences and timer presets are persistently stored via <code>document.cookie</code> and <code>localStorage</code>. No external accounts or cloud storage are used.
+            </p>
+            <div class="cookie-status-details">
+              <span>Status: <strong class="text-accent" id="cookie-status-text">Active & Persistent</strong></span>
+            </div>
+            <div class="settings-actions-row">
+              <button type="button" class="btn-action outline btn-sm" id="btn-export-settings">Export JSON</button>
+              <label class="btn-action outline btn-sm btn-file-label">
+                Import JSON
+                <input type="file" id="input-import-settings" accept=".json" hidden>
+              </label>
+              <button type="button" class="btn-action danger btn-sm" id="btn-reset-settings">Reset Defaults</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-action primary" id="btn-save-settings">Done</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Audio Chime & Core Scripts -->
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/stars.js"></script>
+  <script src="js/debug.js"></script>
+  <script src="js/semicircle.js"></script>
+  <script src="js/popout.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
