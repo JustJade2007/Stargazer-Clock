@@ -141,3 +141,41 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Project specific notes and todos
+notes.md
+todo.md
+TODO
+TODO.md
+todo.txt
+TODO.txt
+
+# Client-side AI tools (Antigravity)
+.gemini/
+.agents/
+.antigravity/
+*antigravity*
+brain/
+
+# API keys and secrets
+keys.md
+keys.txt
+*.key
+*.pem
+.env*
+!.env.example
+
+# OS and system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Python / Executable build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.spec
+dist/
+build/
+*.exe
+
