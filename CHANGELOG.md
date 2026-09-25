@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-25
+
+### Added
+- **Moon & Galaxy App Icon Design (`assets/icon.png`, `assets/icon.ico`, `build.py`, `index.html`, `README.md`)**:
+  - Created celestial app emblem depicting a luminous detailed moon surrounded by a cosmic swirling galaxy and starlight nebula.
+  - Generated multi-resolution Windows icon (`assets/icon.ico`) with 16px to 256px mipmaps embedded directly into the standalone Windows executable (`Stargazer-Clock.exe`).
+  - Added high-resolution favicon links (`assets/icon.png`, `assets/icon.ico`) and apple-touch-icon for web browser and GitHub Pages usage.
+  - Featured the cosmic moon and galaxy icon directly in the application's top navigation brand bar and the top of `README.md`.
+
 ## [0.4.0] - 2026-09-25
 
 ### Added

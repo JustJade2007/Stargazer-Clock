@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon.png" alt="Stargazer Clock Logo - Moon with Galaxy" width="130" height="130" style="border-radius: 50%;">
+</p>
+
 # Stargazer Clock 🌌⏱️
 
 > **A cosmic desktop backdrop & customizable semicircle clock designed for work sessions, long events, and watching time pass by.**

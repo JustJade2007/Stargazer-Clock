@@ -54,9 +54,11 @@ def build_executable():
         "--name", app_name,
         f"--workpath={temp_workpath}",
         f"--distpath={DIST_DIR}",
+        f"--icon={os.path.join(ROOT_DIR, 'assets', 'icon.ico')}",
         f"--add-data=index.html{sep}.",
         f"--add-data=css{sep}css",
         f"--add-data=js{sep}js",
+        f"--add-data=assets{sep}assets",
         os.path.join(ROOT_DIR, "desktop_launcher.py")
     ]
 
