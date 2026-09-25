@@ -93,16 +93,58 @@ Stargazer-Clock/
 
 ---
 
+## Quick Start & Usage
+
+### 1. Browser & GitHub Pages
+Simply open [index.html](file:///c:/Users/jacob/OneDrive/Desktop/Coding/Stargazer-Clock/index.html) in any modern web browser, or host on GitHub Pages:
+```bash
+# Optional local development server
+python -m http.server 8000
+# Open http://localhost:8000 in your browser
+```
+
+### 2. Standalone Windows Desktop App (.exe)
+Run the pre-compiled portable executable:
+```bash
+dist/Stargazer-Clock.exe
+```
+Or launch directly from Python:
+```bash
+python desktop_launcher.py
+```
+
+### 3. Rebuild Desktop Executable
+To recompile the standalone single-file executable at any time:
+```bash
+python build.py
+```
+Outputs: `dist/Stargazer-Clock.exe` (Standalone windowed application with embedded web assets).
+
+---
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|---|---|
+| <kbd>Space</kbd> | Start / Pause active timer or stopwatch |
+| <kbd>R</kbd> | Reset active timer or stopwatch |
+| <kbd>L</kbd> | Record lap split (Stopwatch mode) |
+| <kbd>1</kbd> - <kbd>5</kbd> | Quick switch between Clock, Shift, Timer, Stopwatch, and Combined |
+| <kbd>F11</kbd> | Toggle ambient fullscreen mode |
+
+---
+
 ## Roadmap
 
 - [x] Repository initialization, project documentation, and issue templates.
-- [ ] Core HTML5/Canvas cosmic starry backdrop engine.
-- [ ] SVG/Canvas dynamic semicircle radial gauge component.
-- [ ] Clock, Shift Tracker, Countdown Timer, and Stopwatch modules.
-- [ ] Cookie and localStorage state synchronization.
-- [ ] Sound/audio chime notifications on timer completion.
+- [x] Core HTML5/Canvas cosmic starry backdrop engine with meteor streaks and parallax.
+- [x] SVG/Canvas dynamic semicircle radial gauge component with glowing pointer.
+- [x] Clock, Shift Tracker, Countdown Timer, and Stopwatch modules.
+- [x] Combined multi-widget ambient dashboard.
+- [x] Cookie and localStorage state synchronization.
+- [x] Web Audio API synthetic celestial chime notifications on timer completion.
+- [x] Standalone desktop package build script (`dist/Stargazer-Clock.exe`).
 - [ ] Automated GitHub Pages deployment workflow.
-- [ ] Standalone desktop package build script (`.exe`).
 
 ---
 
