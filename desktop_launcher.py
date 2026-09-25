@@ -78,20 +78,33 @@ if sys.platform == 'win32':
     SWP_SHOWWINDOW = 0x0040
     SWP_NOACTIVATE = 0x0010
 
-    def find_windows_matching(title_filter):
-        """Finds all visible top-level windows matching a substring in title."""
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    user32.SetForegroundWindow.restype = wintypes.BOOL
+
+    def get_window_title(hwnd):
+        """Retrieves window text safely."""
+        try:
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length > 0:
+                buff = ctypes.create_unicode_buffer(length + 1)
+                user32.GetWindowTextW(hwnd, buff, length + 1)
+                return buff.value
+        except Exception:
+            pass
+        return ""
+
+    def find_windows_matching(include_str, exclude_str=None):
+        """Finds all visible top-level windows matching include_str and not containing exclude_str."""
         matched = []
         WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, ctypes.c_void_p)
 
         def callback(hwnd, lParam):
             if user32.IsWindowVisible(hwnd):
-                length = user32.GetWindowTextLengthW(hwnd)
-                if length > 0:
-                    buff = ctypes.create_unicode_buffer(length + 1)
-                    user32.GetWindowTextW(hwnd, buff, length + 1)
-                    title = buff.value
-                    if title_filter.lower() in title.lower():
-                        matched.append(hwnd)
+                title = get_window_title(hwnd)
+                if include_str.lower() in title.lower():
+                    if exclude_str and exclude_str.lower() in title.lower():
+                        return True
+                    matched.append(hwnd)
             return True
 
         proc = WNDENUMPROC(callback)
@@ -124,21 +137,40 @@ if sys.platform == 'win32':
         except Exception:
             return False
 
+    def unpin_main_windows():
+        """Ensures the main application window is NEVER topmost, preventing it from covering the popout."""
+        try:
+            main_hwnds = find_windows_matching('Stargazer', exclude_str='Popout')
+            for h in main_hwnds:
+                apply_window_pin(h, False)
+                with PIN_LOCK:
+                    PINNED_HWNDS.discard(h)
+        except Exception:
+            pass
+
     def pin_maintenance_worker():
-        """Background daemon keeping pinned windows persistently above other apps."""
+        """Background daemon ensuring only the popout is pinned without causing repaints/flickering."""
         while True:
             try:
-                time.sleep(0.4)
+                time.sleep(2.0)
+                # Keep main window strictly non-topmost
+                unpin_main_windows()
+
                 with PIN_LOCK:
                     dead = []
                     for hwnd in list(PINNED_HWNDS):
                         if user32.IsWindow(hwnd):
-                            user32.SetWindowPos(
-                                hwnd,
-                                HWND_TOPMOST,
-                                0, 0, 0, 0,
-                                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
-                            )
+                            title = get_window_title(hwnd).lower()
+                            if 'popout' not in title:
+                                # Not a popout window! Unpin immediately.
+                                apply_window_pin(hwnd, False)
+                                dead.append(hwnd)
+                                continue
+
+                            # Only re-apply if WS_EX_TOPMOST was lost, preventing flickering from continuous SetWindowPos
+                            curr_ex = get_win_long(hwnd, GWL_EXSTYLE)
+                            if not (curr_ex & WS_EX_TOPMOST):
+                                apply_window_pin(hwnd, True)
                         else:
                             dead.append(hwnd)
                     for d in dead:
@@ -161,26 +193,30 @@ class QuietHandler(SimpleHTTPRequestHandler):
                 parsed = urllib.parse.urlparse(self.path)
                 params = urllib.parse.parse_qs(parsed.query)
                 pin_state = params.get('state', ['1'])[0] == '1'
-                title_filter = params.get('title', ['Stargazer'])[0]
 
                 success = False
                 if sys.platform == 'win32':
+                    # Unpin main window immediately so it stays in normal layer
+                    unpin_main_windows()
+
                     def scan_and_apply():
-                        # Try immediately and across a few intervals to catch opening windows
-                        for _ in range(6):
-                            hwnds = find_windows_matching(title_filter)
-                            if not hwnds and 'popout' in title_filter.lower():
-                                hwnds = find_windows_matching('Stargazer')
+                        # Target strictly the popout window
+                        for _ in range(8):
+                            hwnds = find_windows_matching('Popout')
                             if hwnds:
                                 with PIN_LOCK:
                                     for h in hwnds:
                                         apply_window_pin(h, pin_state)
                                         if pin_state:
                                             PINNED_HWNDS.add(h)
+                                            try:
+                                                user32.SetForegroundWindow(h)
+                                            except Exception:
+                                                pass
                                         else:
                                             PINNED_HWNDS.discard(h)
                                 break
-                            time.sleep(0.15)
+                            time.sleep(0.12)
 
                     threading.Thread(target=scan_and_apply, daemon=True).start()
                     success = True
@@ -241,6 +277,9 @@ def main():
             "--disable-extensions",
             "--app-auto-launched"
         ]
+        if sys.platform == 'win32':
+            threading.Timer(1.5, unpin_main_windows).start()
+            threading.Timer(3.5, unpin_main_windows).start()
         proc = subprocess.Popen(cmd)
         proc.wait()
     else:

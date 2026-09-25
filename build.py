@@ -5,6 +5,7 @@ Packages the application into a standalone Windows executable (.exe) using PyIns
 
 import os
 import sys
+import time
 import shutil
 import subprocess
 
@@ -18,6 +19,7 @@ def clean_previous_builds():
         try:
             # Terminate any running instances so the .exe is not file-locked by Windows
             subprocess.run(["taskkill", "/IM", "Stargazer-Clock.exe", "/F"], capture_output=True)
+            time.sleep(1.0)
             subprocess.run(["cmd.exe", "/c", f'attrib -r -s -h /s /d "{BUILD_DIR}\\*" & attrib -r -s -h "{BUILD_DIR}"'], capture_output=True)
             subprocess.run(["cmd.exe", "/c", f'attrib -r -s -h /s /d "{DIST_DIR}\\*" & attrib -r -s -h "{DIST_DIR}"'], capture_output=True)
         except Exception:

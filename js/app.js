@@ -90,6 +90,7 @@
     // Switch to initial mode
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('popout') === 'true') {
+      document.title = 'Stargazer Popout (Pinned)';
       elements.body.classList.add('popout-mode');
       const paramMode = urlParams.get('mode');
       if (paramMode) {

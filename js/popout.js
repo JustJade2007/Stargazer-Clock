@@ -116,7 +116,11 @@
         // Update main window button
         this.updateMainUiButton(true);
 
-        // Call desktop launcher pin API to reinforce OS-level topmost
+        try {
+          pipWin.focus();
+        } catch (e) {}
+
+        // Call desktop launcher pin API to reinforce OS-level topmost strictly on popout
         this.callPinApi(true);
 
       } catch (err) {
@@ -143,6 +147,10 @@
         state.pipWindow = popup;
         state.isOpen = true;
         state.isPinned = true;
+        try {
+          popup.document.title = 'Stargazer Popout (Pinned)';
+          popup.focus();
+        } catch (e) {}
         this.updateMainUiButton(true);
         this.callPinApi(true);
       } else {
@@ -723,9 +731,8 @@
     callPinApi(pinState) {
       try {
         const s = pinState ? 1 : 0;
-        // Search both Popout and Stargazer to ensure the window is captured
+        // Strictly target the Popout window and never the main application window
         fetch(`/api/pin?state=${s}&title=Popout`, { method: 'GET' }).catch(() => {});
-        fetch(`/api/pin?state=${s}&title=Stargazer`, { method: 'GET' }).catch(() => {});
       } catch (e) {}
     },
 

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-09-25
+
+### Fixed
+- **Popout Window Topmost Z-Order & Flickering (`desktop_launcher.py`, `js/popout.js`, `js/app.js`)**:
+  - Eliminated window z-order fighting where the popout was pushed behind the main application window. The desktop launcher previously matched the main window ("Stargazer Clock") when querying for windows to pin, inadvertently setting `HWND_TOPMOST` on the main window.
+  - Implemented `unpin_main_windows()` on launcher startup and during popout pin events to strictly force the main application window into the normal non-topmost window layer (`HWND_NOTOPMOST`), guaranteeing the popout widget is always in front.
+  - Removed the aggressive 400ms `SetWindowPos` loop in the pinning daemon which caused window repaints and visual flickering; replaced with a passive 2-second style check that only re-applies if `WS_EX_TOPMOST` was lost.
+  - Explicitly separated window titles: the popout window is given the distinct title `Stargazer Popout (Pinned)`, preventing title matching conflicts with the main window.
+  - Added programmatic `.focus()` calls when creating the popout to immediately surface it in front.
+
 ## [0.7.0] - 2026-09-25
 
 ### Added
