@@ -33,6 +33,17 @@
       intervalId: null
     },
 
+    // Timer Sub-Mode: 'duration' (standard duration countdown) or 'target' (time until / event countdown)
+    timerSubmode: 'duration',
+    targetCountdown: {
+      title: 'Target Countdown',
+      targetTime: '17:00',
+      targetDate: '',
+      setTimestamp: 0,
+      hasTarget: false,
+      hasReached: false
+    },
+
     // Stopwatch
     stopwatch: {
       isRunning: false,
@@ -129,12 +140,26 @@
     elements.timerToggleIcon = document.getElementById('timer-toggle-icon');
     elements.timerToggleLabel = document.getElementById('timer-toggle-label');
     elements.btnTimerReset = document.getElementById('btn-timer-reset');
-    elements.timerPresetButtons = document.querySelectorAll('.preset-chip');
+    elements.timerPresetButtons = document.querySelectorAll('#panel-timer-duration .preset-chip');
     elements.timerInputH = document.getElementById('timer-input-h');
     elements.timerInputM = document.getElementById('timer-input-m');
     elements.timerInputS = document.getElementById('timer-input-s');
     elements.btnSetCustomTimer = document.getElementById('btn-set-custom-timer');
     elements.timerCenterButtons = document.querySelectorAll('[data-timer-center]');
+
+    // Timer Submode Elements
+    elements.btnSubmodeDuration = document.getElementById('btn-submode-duration');
+    elements.btnSubmodeTarget = document.getElementById('btn-submode-target');
+    elements.panelTimerDuration = document.getElementById('panel-timer-duration');
+    elements.panelTimerTarget = document.getElementById('panel-timer-target');
+
+    // Target Countdown Elements
+    elements.targetInputTitle = document.getElementById('target-input-title');
+    elements.targetInputTime = document.getElementById('target-input-time');
+    elements.targetInputDate = document.getElementById('target-input-date');
+    elements.btnSetTargetCountdown = document.getElementById('btn-set-target-countdown');
+    elements.btnClearTargetCountdown = document.getElementById('btn-clear-target-countdown');
+    elements.targetPresetButtons = document.querySelectorAll('#panel-timer-target .preset-chip');
 
     // Stopwatch
     elements.stopwatchDisplay = document.getElementById('stopwatch-display');
@@ -224,6 +249,22 @@
       state.timer.remainingSeconds = state.timer.totalSeconds;
       updateTimerDisplay();
     }
+
+    // Apply timer sub-mode and target countdown settings
+    state.timerSubmode = state.settings.timerSubmode || 'duration';
+    if (state.settings.targetCountdownSettings) {
+      state.targetCountdown = Object.assign(state.targetCountdown, state.settings.targetCountdownSettings);
+      if (elements.targetInputTitle && state.targetCountdown.title) {
+        elements.targetInputTitle.value = state.targetCountdown.title;
+      }
+      if (elements.targetInputTime && state.targetCountdown.targetTime) {
+        elements.targetInputTime.value = state.targetCountdown.targetTime;
+      }
+      if (elements.targetInputDate && state.targetCountdown.targetDate) {
+        elements.targetInputDate.value = state.targetCountdown.targetDate;
+      }
+    }
+    setTimerSubmode(state.timerSubmode);
 
     // Apply combined focal
     state.combinedFocal = state.settings.combinedFocal || 'clock';
@@ -396,7 +437,11 @@
     state.settings.timerCenterDisplay = state.timerCenterDisplay;
     window.StargazerStorage.set('timerCenterDisplay', state.timerCenterDisplay);
     updateCenterDisplayButtons();
-    updateTimerDisplay();
+    if (state.timerSubmode === 'target') {
+      tickTargetCountdown();
+    } else {
+      updateTimerDisplay();
+    }
   }
 
   function updateCenterDisplayButtons() {
@@ -538,9 +583,13 @@
     // Shift Tracker Tick
     tickShift(now, formattedTime);
 
-    // Timer Tick updates if swapped to current time
-    if (state.timerCenterDisplay === 'time' && state.activeMode === 'timer') {
-      elements.timerDisplay.textContent = formattedTime;
+    // Timer Tick updates depending on active timer submode
+    if (state.timerSubmode === 'target') {
+      tickTargetCountdown(now, formattedTime);
+    } else {
+      if (state.timerCenterDisplay === 'time' && state.activeMode === 'timer') {
+        elements.timerDisplay.textContent = formattedTime;
+      }
     }
 
     // Combined Focal Mode Tick
@@ -787,6 +836,196 @@
   }
 
   /**
+   * Set Timer Sub-Mode: 'duration' (Duration Timer) or 'target' (Time Until / Countdown)
+   */
+  function setTimerSubmode(submode) {
+    state.timerSubmode = submode;
+    state.settings.timerSubmode = submode;
+    window.StargazerStorage.set('timerSubmode', submode);
+
+    if (elements.btnSubmodeDuration && elements.btnSubmodeTarget) {
+      elements.btnSubmodeDuration.classList.toggle('active', submode === 'duration');
+      elements.btnSubmodeTarget.classList.toggle('active', submode === 'target');
+    }
+
+    if (elements.panelTimerDuration && elements.panelTimerTarget) {
+      elements.panelTimerDuration.style.display = submode === 'duration' ? 'block' : 'none';
+      elements.panelTimerTarget.style.display = submode === 'target' ? 'block' : 'none';
+    }
+
+    if (submode === 'duration') {
+      updateTimerDisplay();
+      updateTimerControls();
+    } else {
+      tickTargetCountdown();
+    }
+  }
+
+  /**
+   * Set Target Countdown configuration
+   */
+  function setTargetCountdownValues(title, time, date) {
+    state.targetCountdown.title = (title || 'Target Countdown').trim();
+    state.targetCountdown.targetTime = time || '17:00';
+    state.targetCountdown.targetDate = date || '';
+    state.targetCountdown.setTimestamp = Date.now();
+    state.targetCountdown.hasTarget = true;
+    state.targetCountdown.hasReached = false;
+
+    if (elements.targetInputTitle) elements.targetInputTitle.value = state.targetCountdown.title;
+    if (elements.targetInputTime) elements.targetInputTime.value = state.targetCountdown.targetTime;
+    if (elements.targetInputDate) elements.targetInputDate.value = state.targetCountdown.targetDate;
+
+    state.settings.targetCountdownSettings = {
+      title: state.targetCountdown.title,
+      targetTime: state.targetCountdown.targetTime,
+      targetDate: state.targetCountdown.targetDate,
+      setTimestamp: state.targetCountdown.setTimestamp
+    };
+    window.StargazerStorage.set('targetCountdownSettings', state.settings.targetCountdownSettings);
+
+    tickTargetCountdown();
+  }
+
+  /**
+   * Target Countdown / Time Until Calculations & Display
+   */
+  function tickTargetCountdown(now, formattedTime) {
+    if (!now) now = new Date();
+    if (!formattedTime) formattedTime = formatCurrentTimeString(now);
+
+    const title = (state.targetCountdown.title || 'Target Event').trim();
+    const timeStr = state.targetCountdown.targetTime || '17:00';
+    const dateStr = state.targetCountdown.targetDate || '';
+
+    const [tH, tM] = timeStr.split(':').map(Number);
+    let targetDateObj;
+
+    if (dateStr) {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      targetDateObj = new Date(year, month - 1, day, tH, tM, 0, 0);
+    } else {
+      targetDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), tH, tM, 0, 0);
+      // If target time is earlier than current time today, roll over to tomorrow
+      if (targetDateObj.getTime() <= now.getTime()) {
+        targetDateObj.setDate(targetDateObj.getDate() + 1);
+      }
+    }
+
+    const targetMs = targetDateObj.getTime();
+    const currentMs = now.getTime();
+    const diffMs = targetMs - currentMs;
+
+    // Baseline start timestamp for progress bar
+    let setMs = state.targetCountdown.setTimestamp;
+    if (!setMs || setMs <= 0 || setMs >= targetMs || (targetMs - setMs) < 60000) {
+      // Default baseline: 24 hours prior to target if duration was not recorded
+      setMs = targetMs - (24 * 3600 * 1000);
+      if (setMs > currentMs) {
+        setMs = currentMs - 1000;
+      }
+    }
+
+    const totalWindowMs = targetMs - setMs;
+    const elapsedMs = Math.max(0, currentMs - setMs);
+    let progress = totalWindowMs > 0 ? Math.max(0, Math.min(1, elapsedMs / totalWindowMs)) : 0;
+
+    let timeText = '';
+    let statusText = '';
+    const isCompleted = diffMs <= 0;
+
+    if (isCompleted) {
+      progress = 1;
+      timeText = '00:00:00';
+      statusText = 'Target Reached!';
+      if (!state.targetCountdown.hasReached) {
+        state.targetCountdown.hasReached = true;
+        if (state.settings.soundEnabled) {
+          window.StargazerAudio.playChime(state.settings.soundVolume / 100);
+        }
+        flashCompletionEffect();
+      }
+    } else {
+      state.targetCountdown.hasReached = false;
+      timeText = formatRemainingCountdown(diffMs);
+      const targetTimeFormatted = formatTargetDateTime(targetDateObj);
+      statusText = `Counting down to ${targetTimeFormatted}`;
+    }
+
+    const pctText = `${(progress * 100).toFixed(1)}%`;
+
+    // Center Display Swapping: Remaining / Percent / Time
+    if (state.timerCenterDisplay === 'remaining') {
+      elements.timerTitleBadge.textContent = `${title.toUpperCase()} • TIME UNTIL`;
+      elements.timerDisplay.textContent = timeText;
+      elements.timerSubText.textContent = isCompleted ? 'Target arrived' : `Target: ${formatTargetDateTime(targetDateObj)} (${pctText} elapsed)`;
+    } else if (state.timerCenterDisplay === 'percent') {
+      elements.timerTitleBadge.textContent = `${title.toUpperCase()} • PROGRESS`;
+      elements.timerDisplay.textContent = pctText;
+      elements.timerSubText.textContent = isCompleted ? 'Completed' : `${timeText} remaining until ${title}`;
+    } else if (state.timerCenterDisplay === 'time') {
+      elements.timerTitleBadge.textContent = 'CURRENT LOCAL TIME';
+      elements.timerDisplay.textContent = formattedTime;
+      elements.timerSubText.textContent = isCompleted ? `${title} arrived` : `${timeText} until ${title}`;
+    }
+
+    elements.timerStatusText.textContent = statusText;
+
+    if (dialTimer) dialTimer.setProgress(progress, false, now);
+    if (dialCombTimer) dialCombTimer.setProgress(progress, false, now);
+
+    // Sync Combined mini timer card if active
+    elements.combTimerDigits.textContent = isCompleted ? '00:00' : timeText;
+    elements.combTimerStatus.textContent = isCompleted ? 'Completed' : `Until ${title}`;
+  }
+
+  function formatRemainingCountdown(ms) {
+    const totalSecs = Math.max(0, Math.floor(ms / 1000));
+    const days = Math.floor(totalSecs / 86400);
+    const hours = Math.floor((totalSecs % 86400) / 3600);
+    const minutes = Math.floor((totalSecs % 3600) / 60);
+    const seconds = totalSecs % 60;
+
+    const hStr = String(hours).padStart(2, '0');
+    const mStr = String(minutes).padStart(2, '0');
+    const sStr = String(seconds).padStart(2, '0');
+
+    if (days > 0) {
+      return `${days}d ${hStr}:${mStr}:${sStr}`;
+    }
+    return `${hStr}:${mStr}:${sStr}`;
+  }
+
+  function formatTargetDateTime(dateObj) {
+    const is12 = state.settings.timeFormat === '12';
+    let h = dateObj.getHours();
+    let ampm = '';
+    if (is12) {
+      ampm = h >= 12 ? ' PM' : ' AM';
+      h = h % 12;
+      h = h ? h : 12;
+    }
+    const hStr = String(h).padStart(2, '0');
+    const mStr = String(dateObj.getMinutes()).padStart(2, '0');
+    const timeFormatted = `${hStr}:${mStr}${ampm}`;
+
+    const today = new Date();
+    const isToday = dateObj.getDate() === today.getDate() &&
+                    dateObj.getMonth() === today.getMonth() &&
+                    dateObj.getFullYear() === today.getFullYear();
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const isTomorrow = dateObj.getDate() === tomorrow.getDate() &&
+                      dateObj.getMonth() === tomorrow.getMonth() &&
+                      dateObj.getFullYear() === tomorrow.getFullYear();
+
+    if (isToday) return `Today at ${timeFormatted}`;
+    if (isTomorrow) return `Tomorrow at ${timeFormatted}`;
+    return `${dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${timeFormatted}`;
+  }
+
+  /**
    * Precision Stopwatch Functions
    */
   function toggleStopwatch() {
@@ -994,9 +1233,21 @@
           state.settings.timerCenterDisplay = state.timerCenterDisplay;
           window.StargazerStorage.set('timerCenterDisplay', state.timerCenterDisplay);
           updateCenterDisplayButtons();
-          updateTimerDisplay();
+          if (state.timerSubmode === 'target') {
+            tickTargetCountdown();
+          } else {
+            updateTimerDisplay();
+          }
         });
       });
+    }
+
+    // Timer Submode Buttons
+    if (elements.btnSubmodeDuration) {
+      elements.btnSubmodeDuration.addEventListener('click', () => setTimerSubmode('duration'));
+    }
+    if (elements.btnSubmodeTarget) {
+      elements.btnSubmodeTarget.addEventListener('click', () => setTimerSubmode('target'));
     }
 
     // Clock Arc Selection
@@ -1022,7 +1273,7 @@
       tickClock();
     });
 
-    // Timer Controls
+    // Timer Duration Controls
     elements.btnTimerToggle.addEventListener('click', toggleTimer);
     elements.btnTimerReset.addEventListener('click', resetTimer);
     elements.btnCombTimerToggle.addEventListener('click', toggleTimer);
@@ -1048,6 +1299,57 @@
         elements.timerPresetButtons.forEach(b => b.classList.remove('active'));
       }
     });
+
+    // Target Countdown Controls
+    if (elements.btnSetTargetCountdown) {
+      elements.btnSetTargetCountdown.addEventListener('click', () => {
+        const title = elements.targetInputTitle ? elements.targetInputTitle.value.trim() : 'Target Countdown';
+        const time = elements.targetInputTime ? elements.targetInputTime.value : '17:00';
+        const date = elements.targetInputDate ? elements.targetInputDate.value : '';
+        setTargetCountdownValues(title, time, date);
+      });
+    }
+
+    if (elements.btnClearTargetCountdown) {
+      elements.btnClearTargetCountdown.addEventListener('click', () => {
+        setTargetCountdownValues('Target Countdown', '17:00', '');
+        elements.targetPresetButtons.forEach(b => b.classList.remove('active'));
+        elements.timerStatusText.textContent = 'Target cleared';
+      });
+    }
+
+    if (elements.targetPresetButtons) {
+      elements.targetPresetButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          elements.targetPresetButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          const preset = btn.dataset.targetPreset;
+          const now = new Date();
+
+          if (preset === 'next-hour') {
+            const nextHour = new Date(now);
+            nextHour.setHours(now.getHours() + 1, 0, 0, 0);
+            const hStr = String(nextHour.getHours()).padStart(2, '0');
+            const mStr = String(nextHour.getMinutes()).padStart(2, '0');
+            const isNextDay = nextHour.getDate() !== now.getDate();
+            const dStr = isNextDay ? nextHour.toISOString().split('T')[0] : '';
+            setTargetCountdownValues('Next Hour', `${hStr}:${mStr}`, dStr);
+          } else if (preset === 'noon') {
+            setTargetCountdownValues('Lunch / Noon', '12:00', '');
+          } else if (preset === 'evening') {
+            setTargetCountdownValues('End of Day (5 PM)', '17:00', '');
+          } else if (preset === 'midnight') {
+            setTargetCountdownValues('Midnight', '00:00', '');
+          } else if (preset === 'tomorrow-morning') {
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const dStr = tomorrow.toISOString().split('T')[0];
+            setTargetCountdownValues('Tomorrow 9 AM', '09:00', dStr);
+          }
+        });
+      });
+    }
 
     // Stopwatch Controls
     elements.btnStopwatchToggle.addEventListener('click', toggleStopwatch);

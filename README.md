@@ -67,7 +67,7 @@ Whether run directly in your browser, hosted as a local service, or launched as 
 |---|---|---|
 | **Clock** | Everyday current time awareness | Arc progress across current hour / day |
 | **Shift Tracker** | Tracking work shifts and event milestones | Arc progress from shift start time to shift end time |
-| **Timer** | Dedicated task countdowns | Arc depletion down to zero with subtle completion alert |
+| **Timer** | Dedicated task countdowns & time-until events | Dual sub-modes: standard duration countdown or target countdown to a specific time/date |
 | **Stopwatch** | Elapsed focus sessions and sprints | Continuous arc sweep with lap tracking |
 | **Combined** | Comprehensive multi-monitoring | Central clock flanked by active timer and stopwatch gauges |
 

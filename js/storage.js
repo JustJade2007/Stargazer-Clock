@@ -31,6 +31,13 @@
       totalSeconds: 25 * 60,
       activePreset: '25'
     },
+    timerSubmode: 'duration', // 'duration' or 'target'
+    targetCountdownSettings: {
+      title: 'Target Countdown',
+      targetTime: '17:00',
+      targetDate: '',
+      setTimestamp: 0
+    },
     combinedFocal: 'clock',
     centerDisplayMode: 'time', // 'time', 'remaining', 'percent'
     pointerMode: 'auto' // 'auto', 'sun', 'moon', 'orb'

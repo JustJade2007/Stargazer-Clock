@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-25
+
+### Added
+- **Timer Sub-Mode Architecture (`index.html`, `js/app.js`, `js/storage.js`, `css/style.css`)**:
+  - Expanded Timer mode to seamlessly toggle between **Duration Timer** (countdown from a fixed duration, e.g. 25m, 45m) and **Time Until / Countdown** (countdown to a specific target clock time/event, e.g. 17:00, lunch, or custom date & time).
+  - Added dedicated sub-mode switcher with persistent state saved in cookies/localStorage.
+  - Added quick target presets: **Next Hour**, **Lunch / Noon (12:00)**, **End of Day (5:00 PM)**, **Midnight (00:00)**, and **Tomorrow 9 AM**.
+  - Custom target event inputs supporting custom title label, target time (`HH:MM`), and optional target date (`YYYY-MM-DD`).
+  - Seamless integration with the 1-click center display swapping: switch between **Time Left**, **Percentage Elapsed**, and **Current Local Time** in both timer sub-modes.
+  - Automatic chime alert and radial pulse effect when the target event arrives.
+
 ## [0.2.0] - 2026-09-25
 
 ### Added

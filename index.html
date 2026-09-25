@@ -187,6 +187,15 @@
           </div>
 
           <div class="view-controls timer-controls">
+            <!-- Timer Sub-Mode Switcher: Duration Timer vs Time Until / Countdown -->
+            <div class="control-row">
+              <span class="control-label">Mode:</span>
+              <div class="control-segmented" role="group" aria-label="Timer Sub-Mode">
+                <button type="button" class="seg-btn active" data-timer-submode="duration" id="btn-submode-duration">⏳ Duration Timer</button>
+                <button type="button" class="seg-btn" data-timer-submode="target" id="btn-submode-target">🎯 Time Until / Countdown</button>
+              </div>
+            </div>
+
             <!-- Center Display Selector -->
             <div class="control-row">
               <span class="control-label">Center Display:</span>
@@ -197,38 +206,70 @@
               </div>
             </div>
 
-            <div class="timer-presets" role="group" aria-label="Timer presets">
-              <button type="button" class="preset-chip active" data-minutes="25">🍅 Pomodoro 25m</button>
-              <button type="button" class="preset-chip" data-minutes="5">☕ Break 5m</button>
-              <button type="button" class="preset-chip" data-minutes="15">🌿 Rest 15m</button>
-              <button type="button" class="preset-chip" data-minutes="45">🎯 Focus 45m</button>
-              <button type="button" class="preset-chip" data-minutes="60">🚀 Sprint 60m</button>
+            <!-- Subpanel 1: Duration Timer Controls -->
+            <div id="panel-timer-duration" class="timer-subpanel">
+              <div class="timer-presets" role="group" aria-label="Timer presets">
+                <button type="button" class="preset-chip active" data-minutes="25">🍅 Pomodoro 25m</button>
+                <button type="button" class="preset-chip" data-minutes="5">☕ Break 5m</button>
+                <button type="button" class="preset-chip" data-minutes="15">🌿 Rest 15m</button>
+                <button type="button" class="preset-chip" data-minutes="45">🎯 Focus 45m</button>
+                <button type="button" class="preset-chip" data-minutes="60">🚀 Sprint 60m</button>
+              </div>
+
+              <div class="timer-custom-inputs" id="timer-custom-row">
+                <div class="time-spinner">
+                  <input type="number" id="timer-input-h" min="0" max="99" value="0" aria-label="Hours">
+                  <span>h</span>
+                </div>
+                <span class="time-sep">:</span>
+                <div class="time-spinner">
+                  <input type="number" id="timer-input-m" min="0" max="59" value="25" aria-label="Minutes">
+                  <span>m</span>
+                </div>
+                <span class="time-sep">:</span>
+                <div class="time-spinner">
+                  <input type="number" id="timer-input-s" min="0" max="59" value="0" aria-label="Seconds">
+                  <span>s</span>
+                </div>
+                <button type="button" class="btn-action secondary" id="btn-set-custom-timer">Set</button>
+              </div>
+
+              <div class="timer-action-buttons">
+                <button type="button" class="btn-action primary btn-lg" id="btn-timer-toggle">
+                  <span id="timer-toggle-icon">▶</span>
+                  <span id="timer-toggle-label">Start</span>
+                </button>
+                <button type="button" class="btn-action outline btn-lg" id="btn-timer-reset">Reset</button>
+              </div>
             </div>
 
-            <div class="timer-custom-inputs" id="timer-custom-row">
-              <div class="time-spinner">
-                <input type="number" id="timer-input-h" min="0" max="99" value="0" aria-label="Hours">
-                <span>h</span>
+            <!-- Subpanel 2: Time Until / Event Countdown Controls -->
+            <div id="panel-timer-target" class="timer-subpanel" style="display: none;">
+              <!-- Quick Target Presets -->
+              <div class="timer-presets" role="group" aria-label="Target presets">
+                <button type="button" class="preset-chip" data-target-preset="next-hour">🔔 Next Hour</button>
+                <button type="button" class="preset-chip" data-target-preset="noon">🥪 Noon (12:00)</button>
+                <button type="button" class="preset-chip" data-target-preset="evening">🚪 5:00 PM</button>
+                <button type="button" class="preset-chip" data-target-preset="midnight">🌙 Midnight (00:00)</button>
+                <button type="button" class="preset-chip" data-target-preset="tomorrow-morning">☀️ Tomorrow 9 AM</button>
               </div>
-              <span class="time-sep">:</span>
-              <div class="time-spinner">
-                <input type="number" id="timer-input-m" min="0" max="59" value="25" aria-label="Minutes">
-                <span>m</span>
-              </div>
-              <span class="time-sep">:</span>
-              <div class="time-spinner">
-                <input type="number" id="timer-input-s" min="0" max="59" value="0" aria-label="Seconds">
-                <span>s</span>
-              </div>
-              <button type="button" class="btn-action secondary" id="btn-set-custom-timer">Set</button>
-            </div>
 
-            <div class="timer-action-buttons">
-              <button type="button" class="btn-action primary btn-lg" id="btn-timer-toggle">
-                <span id="timer-toggle-icon">▶</span>
-                <span id="timer-toggle-label">Start</span>
-              </button>
-              <button type="button" class="btn-action outline btn-lg" id="btn-timer-reset">Reset</button>
+              <div class="shift-inputs-card target-inputs-card">
+                <div class="input-group">
+                  <label for="target-input-title">Event Title</label>
+                  <input type="text" id="target-input-title" value="Target Countdown" maxlength="28" placeholder="e.g. End of Day, Launch">
+                </div>
+                <div class="input-group">
+                  <label for="target-input-time">Target Time</label>
+                  <input type="time" id="target-input-time" value="17:00">
+                </div>
+                <div class="input-group">
+                  <label for="target-input-date">Target Date (Optional)</label>
+                  <input type="date" id="target-input-date">
+                </div>
+                <button type="button" class="btn-action primary" id="btn-set-target-countdown">Set Countdown</button>
+                <button type="button" class="btn-action outline" id="btn-clear-target-countdown">Clear Target</button>
+              </div>
             </div>
           </div>
         </div>
