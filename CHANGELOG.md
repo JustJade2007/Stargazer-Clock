@@ -30,7 +30,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cookie & LocalStorage Persistence Engine (`js/storage.js`)**:
   - Synchronized cookie storage with fallback to localStorage for all settings and presets.
   - Export and import configuration as JSON.
+- **Interactive Central Metric Swapping (`js/app.js`, `index.html`)**:
+  - Central big display can now be seamlessly toggled between **Current Time**, **Time Left / Remaining**, and **Percentage (%)** across Clock, Shift Tracker, and Timer modes.
+  - Interactive 1-click swapping directly on the dial numbers, dedicated segmented control selectors, and quick <kbd>T</kbd> keyboard shortcut.
+  - Persistent preferences retained in cookies and local storage.
+- **Astronomical Sun & Moon Phase Pointer (`js/semicircle.js`, `js/app.js`)**:
+  - Semicircle progress indicator transforms into a radiant Sun with golden corona rays during daylight hours (06:00 to 18:00).
+  - Automatically transitions to an astronomically calculated Moon at night matching the true lunar phase (New Moon, Waxing/Waning Crescent, First/Last Quarter, Waxing/Waning Gibbous, Full Moon) with detailed terminator shading and craters.
+  - Live celestial ephemeris status display in bottom status bar and Settings dialog with customizable indicator modes (Auto, Always Moon, Always Sun, Classic Orb).
 - **Desktop Executable Packaging (`desktop_launcher.py`, `build.py`)**:
+  - Standalone single-file Windows executable (`dist/Stargazer-Clock.exe`) compiled with PyInstaller in windowed mode.
+  - Dedicated Microsoft Edge App Mode runner with fallback to default browser.
 ### Fixed
 - **Semicircle Progress Arc Direction & Coordinates (`js/semicircle.js`)**: Fixed canvas arc angle orientation and clockwise sweep direction so the progress fill tracks seamlessly across the upper arch from 0% to 100% instead of clipping below the baseline.
 - **Build Script Process Lock Handling (`build.py`)**: Automatically terminates active desktop processes before compiling to prevent Windows executable write lock errors.

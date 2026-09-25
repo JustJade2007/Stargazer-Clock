@@ -129,6 +129,7 @@ Outputs: `dist/Stargazer-Clock.exe` (Standalone windowed application with embedd
 | <kbd>Space</kbd> | Start / Pause active timer or stopwatch |
 | <kbd>R</kbd> | Reset active timer or stopwatch |
 | <kbd>L</kbd> | Record lap split (Stopwatch mode) |
+| <kbd>T</kbd> | Cycle center display (Current Time ⇄ Time Left ⇄ %) |
 | <kbd>1</kbd> - <kbd>5</kbd> | Quick switch between Clock, Shift, Timer, Stopwatch, and Combined |
 | <kbd>F11</kbd> | Toggle ambient fullscreen mode |
 

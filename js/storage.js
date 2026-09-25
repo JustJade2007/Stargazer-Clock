@@ -31,7 +31,9 @@
       totalSeconds: 25 * 60,
       activePreset: '25'
     },
-    combinedFocal: 'clock'
+    combinedFocal: 'clock',
+    centerDisplayMode: 'time', // 'time', 'remaining', 'percent'
+    pointerMode: 'auto' // 'auto', 'sun', 'moon', 'orb'
   };
 
   const Storage = {

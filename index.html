@@ -77,10 +77,11 @@
         <div class="dial-container">
           <div class="semicircle-wrapper">
             <canvas id="dial-canvas-clock" class="dial-canvas"></canvas>
-            <div class="dial-center-content">
+            <div class="dial-center-content dial-center-clickable" id="clock-center-click-area" title="Click to cycle display: Current Time ⇄ Time Left ⇄ Percentage" tabindex="0" role="button" aria-label="Cycle display between Current Time, Time Left, and Percentage">
               <div class="dial-sub-badge" id="clock-mode-label">CURRENT TIME</div>
               <div class="dial-digital-time" id="clock-digital-time">12:00:00</div>
               <div class="dial-date" id="clock-date">Friday, September 25, 2026</div>
+              <div class="dial-swap-hint"><span class="swap-icon">⇄</span> Click to switch: Time / Left / %</div>
               <div class="dial-status-pill" id="clock-status-pill">
                 <span class="status-dot"></span>
                 <span id="clock-arc-label">Day Progress: 50.0%</span>
@@ -89,10 +90,24 @@
           </div>
 
           <div class="view-controls clock-controls">
-            <div class="control-segmented" role="group" aria-label="Clock Arc Mode">
-              <button type="button" class="seg-btn active" data-clock-arc="day" id="btn-clock-arc-day">Day (24h)</button>
-              <button type="button" class="seg-btn" data-clock-arc="hour" id="btn-clock-arc-hour">Hour (60m)</button>
-              <button type="button" class="seg-btn" data-clock-arc="halfday" id="btn-clock-arc-halfday">12h Arc</button>
+            <!-- Center Display Selector -->
+            <div class="control-row">
+              <span class="control-label">Center Display:</span>
+              <div class="control-segmented" role="group" aria-label="Clock Center Display">
+                <button type="button" class="seg-btn active" data-clock-center="time" id="btn-clock-center-time">Current Time</button>
+                <button type="button" class="seg-btn" data-clock-center="remaining" id="btn-clock-center-rem">Time Left</button>
+                <button type="button" class="seg-btn" data-clock-center="percent" id="btn-clock-center-pct">Percentage</button>
+              </div>
+            </div>
+
+            <!-- Clock Arc Scope Selector -->
+            <div class="control-row">
+              <span class="control-label">Arc Scope:</span>
+              <div class="control-segmented" role="group" aria-label="Clock Arc Mode">
+                <button type="button" class="seg-btn active" data-clock-arc="day" id="btn-clock-arc-day">Day (24h)</button>
+                <button type="button" class="seg-btn" data-clock-arc="hour" id="btn-clock-arc-hour">Hour (60m)</button>
+                <button type="button" class="seg-btn" data-clock-arc="halfday" id="btn-clock-arc-halfday">12h Arc</button>
+              </div>
             </div>
           </div>
         </div>
@@ -103,7 +118,7 @@
         <div class="dial-container">
           <div class="semicircle-wrapper">
             <canvas id="dial-canvas-shift" class="dial-canvas"></canvas>
-            <div class="dial-center-content">
+            <div class="dial-center-content dial-center-clickable" id="shift-center-click-area" title="Click to cycle display: Percentage ⇄ Time Left ⇄ Current Time" tabindex="0" role="button" aria-label="Cycle display between Percentage, Time Left, and Current Time">
               <div class="dial-sub-badge" id="shift-name-label">WORKDAY SHIFT</div>
               <div class="dial-digital-time" id="shift-progress-percent">0.0%</div>
               <div class="shift-stats-row">
@@ -117,6 +132,7 @@
                   <span class="stat-value" id="shift-remaining">8h 00m</span>
                 </div>
               </div>
+              <div class="dial-swap-hint"><span class="swap-icon">⇄</span> Click to switch: % / Left / Time</div>
               <div class="dial-status-pill" id="shift-status-pill">
                 <span class="status-dot"></span>
                 <span id="shift-status-text">Starts at 08:00</span>
@@ -125,6 +141,15 @@
           </div>
 
           <div class="view-controls shift-controls">
+            <!-- Center Display Selector -->
+            <div class="control-row">
+              <span class="control-label">Center Display:</span>
+              <div class="control-segmented" role="group" aria-label="Shift Center Display">
+                <button type="button" class="seg-btn active" data-shift-center="percent" id="btn-shift-center-pct">Percentage</button>
+                <button type="button" class="seg-btn" data-shift-center="remaining" id="btn-shift-center-rem">Time Left</button>
+                <button type="button" class="seg-btn" data-shift-center="time" id="btn-shift-center-time">Current Time</button>
+              </div>
+            </div>
             <div class="shift-inputs-card">
               <div class="input-group">
                 <label for="shift-input-title">Label</label>
@@ -149,10 +174,11 @@
         <div class="dial-container">
           <div class="semicircle-wrapper">
             <canvas id="dial-canvas-timer" class="dial-canvas"></canvas>
-            <div class="dial-center-content">
+            <div class="dial-center-content dial-center-clickable" id="timer-center-click-area" title="Click to cycle display: Time Left ⇄ Percentage ⇄ Current Time" tabindex="0" role="button" aria-label="Cycle display between Time Left, Percentage, and Current Time">
               <div class="dial-sub-badge" id="timer-title-badge">COUNTDOWN TIMER</div>
               <div class="dial-digital-time timer-digits" id="timer-display">25:00</div>
               <div class="timer-remaining-sub" id="timer-sub-text">Total: 25 minutes</div>
+              <div class="dial-swap-hint"><span class="swap-icon">⇄</span> Click to switch: Left / % / Time</div>
               <div class="dial-status-pill" id="timer-status-pill">
                 <span class="status-dot"></span>
                 <span id="timer-status-text">Ready</span>
@@ -161,6 +187,16 @@
           </div>
 
           <div class="view-controls timer-controls">
+            <!-- Center Display Selector -->
+            <div class="control-row">
+              <span class="control-label">Center Display:</span>
+              <div class="control-segmented" role="group" aria-label="Timer Center Display">
+                <button type="button" class="seg-btn active" data-timer-center="remaining" id="btn-timer-center-rem">Time Left</button>
+                <button type="button" class="seg-btn" data-timer-center="percent" id="btn-timer-center-pct">Percentage</button>
+                <button type="button" class="seg-btn" data-timer-center="time" id="btn-timer-center-time">Current Time</button>
+              </div>
+            </div>
+
             <div class="timer-presets" role="group" aria-label="Timer presets">
               <button type="button" class="preset-chip active" data-minutes="25">🍅 Pomodoro 25m</button>
               <button type="button" class="preset-chip" data-minutes="5">☕ Break 5m</button>
@@ -252,10 +288,11 @@
             </div>
             <div class="semicircle-wrapper comb-focal-wrapper">
               <canvas id="dial-canvas-combined-focal" class="dial-canvas"></canvas>
-              <div class="dial-center-content">
+              <div class="dial-center-content dial-center-clickable" id="comb-center-click-area" title="Click to cycle display: Time / Left / %" tabindex="0" role="button" aria-label="Cycle display between Time, Time Left, and Percentage">
                 <div class="dial-sub-badge" id="comb-focal-badge">CURRENT TIME</div>
                 <div class="dial-digital-time" id="comb-focal-digital">12:00:00</div>
                 <div class="dial-date" id="comb-focal-sub">Friday, September 25, 2026</div>
+                <div class="dial-swap-hint"><span class="swap-icon">⇄</span> Click to switch: Time / Left / %</div>
                 <div class="dial-status-pill" id="comb-focal-status">
                   <span class="status-dot"></span>
                   <span id="comb-focal-status-text">Active</span>
@@ -328,6 +365,8 @@
       <div class="status-left">
         <span class="pulse-indicator"></span>
         <span id="footer-connection-status">Celestial Engine Running</span>
+        <span class="status-separator">|</span>
+        <span class="celestial-badge" id="footer-celestial-status">🌙 Moon: Loading Phase...</span>
       </div>
       <div class="status-center">
         <span class="footer-tip">Keyboard: <kbd>Space</kbd> Toggle | <kbd>R</kbd> Reset | <kbd>1-5</kbd> Switch Modes</span>
@@ -380,6 +419,28 @@
             </div>
           </div>
 
+          <!-- Celestial Pointer: Sun / Moon Phase -->
+          <div class="settings-section">
+            <h3 class="section-title">Celestial Pointer & Ephemeris</h3>
+            <div class="settings-row">
+              <label for="setting-pointer-mode">Indicator Symbol</label>
+              <select id="setting-pointer-mode" class="select-input">
+                <option value="auto" selected>Auto (Sun Daytime / Moon Night)</option>
+                <option value="moon">Always Moon 🌙 (Live Phase)</option>
+                <option value="sun">Always Sun ☀️</option>
+                <option value="orb">Classic Glowing Orb ⚪</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <span>Current Moon Phase</span>
+              <span class="text-accent" id="setting-moon-phase-preview">Calculating...</span>
+            </div>
+            <div class="settings-row">
+              <span>Day / Night State</span>
+              <span class="text-accent" id="setting-daynight-preview">Day / Night</span>
+            </div>
+          </div>
+
           <!-- Starry Canvas Options -->
           <div class="settings-section">
             <h3 class="section-title">Starry Cosmos Backdrop</h3>
@@ -404,6 +465,14 @@
           <!-- Clock Formatting -->
           <div class="settings-section">
             <h3 class="section-title">Clock & Display Settings</h3>
+            <div class="settings-row">
+              <label for="setting-center-display">Default Center Display</label>
+              <select id="setting-center-display" class="select-input">
+                <option value="time" selected>Current Time</option>
+                <option value="remaining">Time Remaining</option>
+                <option value="percent">Percentage (%)</option>
+              </select>
+            </div>
             <div class="settings-row">
               <label for="setting-time-format">Time Format</label>
               <select id="setting-time-format" class="select-input">

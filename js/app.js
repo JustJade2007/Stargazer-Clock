@@ -1,7 +1,7 @@
 /**
  * Stargazer Clock - Main Application Orchestrator
- * Coordinates Time Tracking Modes, Starfield, Semicircle Dials, Audio,
- * and Persistent Cookie State.
+ * Coordinates Time Tracking Modes, Celestial Sun & Moon Phases, Semicircle Dials,
+ * Center Display Swapping, Audio, and Persistent Cookie State.
  */
 
 (function () {
@@ -13,6 +13,11 @@
     activeMode: 'clock',
     clockArcMode: 'day', // 'day', 'hour', 'halfday'
     
+    // Center display swap modes: 'time' | 'remaining' | 'percent'
+    clockCenterDisplay: 'time',
+    shiftCenterDisplay: 'percent',
+    timerCenterDisplay: 'remaining',
+
     // Shift Tracker
     shift: {
       title: 'Workday Shift',
@@ -90,14 +95,19 @@
     elements.btnSoundToggle = document.getElementById('btn-sound-toggle');
     elements.soundIcon = document.getElementById('sound-icon');
     elements.cookieStatusBadge = document.getElementById('cookie-status-badge');
+    elements.footerCelestialStatus = document.getElementById('footer-celestial-status');
 
     // Clock
+    elements.clockCenterClickArea = document.getElementById('clock-center-click-area');
+    elements.clockModeLabel = document.getElementById('clock-mode-label');
     elements.clockDigitalTime = document.getElementById('clock-digital-time');
     elements.clockDate = document.getElementById('clock-date');
     elements.clockArcLabel = document.getElementById('clock-arc-label');
     elements.clockArcButtons = document.querySelectorAll('[data-clock-arc]');
+    elements.clockCenterButtons = document.querySelectorAll('[data-clock-center]');
 
     // Shift
+    elements.shiftCenterClickArea = document.getElementById('shift-center-click-area');
     elements.shiftTitleInput = document.getElementById('shift-input-title');
     elements.shiftStartInput = document.getElementById('shift-input-start');
     elements.shiftEndInput = document.getElementById('shift-input-end');
@@ -107,8 +117,11 @@
     elements.shiftElapsed = document.getElementById('shift-elapsed');
     elements.shiftRemaining = document.getElementById('shift-remaining');
     elements.shiftStatusText = document.getElementById('shift-status-text');
+    elements.shiftCenterButtons = document.querySelectorAll('[data-shift-center]');
 
     // Timer
+    elements.timerCenterClickArea = document.getElementById('timer-center-click-area');
+    elements.timerTitleBadge = document.getElementById('timer-title-badge');
     elements.timerDisplay = document.getElementById('timer-display');
     elements.timerSubText = document.getElementById('timer-sub-text');
     elements.timerStatusText = document.getElementById('timer-status-text');
@@ -121,6 +134,7 @@
     elements.timerInputM = document.getElementById('timer-input-m');
     elements.timerInputS = document.getElementById('timer-input-s');
     elements.btnSetCustomTimer = document.getElementById('btn-set-custom-timer');
+    elements.timerCenterButtons = document.querySelectorAll('[data-timer-center]');
 
     // Stopwatch
     elements.stopwatchDisplay = document.getElementById('stopwatch-display');
@@ -134,6 +148,7 @@
     elements.lapsList = document.getElementById('laps-list');
 
     // Combined
+    elements.combCenterClickArea = document.getElementById('comb-center-click-area');
     elements.btnCombFocalClock = document.getElementById('btn-comb-focal-clock');
     elements.btnCombFocalShift = document.getElementById('btn-comb-focal-shift');
     elements.combFocalBadge = document.getElementById('comb-focal-badge');
@@ -157,9 +172,13 @@
 
     // Settings Modal
     elements.themeSwatches = document.querySelectorAll('.theme-swatch');
+    elements.settingPointerMode = document.getElementById('setting-pointer-mode');
+    elements.settingMoonPhasePreview = document.getElementById('setting-moon-phase-preview');
+    elements.settingDaynightPreview = document.getElementById('setting-daynight-preview');
     elements.settingStarDensity = document.getElementById('setting-star-density');
     elements.settingShootingStars = document.getElementById('setting-shooting-stars');
     elements.settingParallax = document.getElementById('setting-parallax');
+    elements.settingCenterDisplay = document.getElementById('setting-center-display');
     elements.settingTimeFormat = document.getElementById('setting-time-format');
     elements.settingShowSeconds = document.getElementById('setting-show-seconds');
     elements.settingShowDate = document.getElementById('setting-show-date');
@@ -184,6 +203,12 @@
     state.clockArcMode = state.settings.clockArc || 'day';
     updateClockArcButtons();
 
+    // Apply center display modes
+    state.clockCenterDisplay = state.settings.clockCenterDisplay || 'time';
+    state.shiftCenterDisplay = state.settings.shiftCenterDisplay || 'percent';
+    state.timerCenterDisplay = state.settings.timerCenterDisplay || 'remaining';
+    updateCenterDisplayButtons();
+
     // Apply shift settings
     if (state.settings.shiftSettings) {
       state.shift = Object.assign(state.shift, state.settings.shiftSettings);
@@ -204,7 +229,13 @@
     state.combinedFocal = state.settings.combinedFocal || 'clock';
     updateCombinedFocalButtons();
 
+    // Apply celestial pointer mode
+    const pointerMode = state.settings.pointerMode || 'auto';
+    applyPointerMode(pointerMode);
+
     // Populate Settings UI
+    if (elements.settingPointerMode) elements.settingPointerMode.value = pointerMode;
+    if (elements.settingCenterDisplay) elements.settingCenterDisplay.value = state.clockCenterDisplay;
     elements.settingStarDensity.value = state.settings.starDensity;
     elements.settingShootingStars.checked = state.settings.shootingStars;
     elements.settingParallax.checked = state.settings.mouseParallax;
@@ -214,6 +245,7 @@
     elements.settingSoundEnabled.checked = state.settings.soundEnabled;
     elements.settingSoundVolume.value = state.settings.soundVolume;
     updateSoundButton();
+    updateEphemerisPreview();
   }
 
   /**
@@ -226,7 +258,6 @@
       swatch.classList.toggle('active', swatch.dataset.theme === themeName);
     });
 
-    // Theme color palettes for dials
     const themeColors = {
       cyan: { glow: '#00f2fe', start: '#00f2fe', end: '#4facfe' },
       violet: { glow: '#b388ff', start: '#b388ff', end: '#7c4dff' },
@@ -243,6 +274,19 @@
   }
 
   /**
+   * Apply Pointer Mode (Auto Sun/Moon, Sun, Moon, Orb)
+   */
+  function applyPointerMode(mode) {
+    state.settings.pointerMode = mode;
+    window.StargazerStorage.set('pointerMode', mode);
+    const dials = [dialClock, dialShift, dialTimer, dialStopwatch, dialCombFocal, dialCombTimer, dialCombStopwatch, dialCombShift];
+    dials.forEach(dial => {
+      if (dial) dial.setPointerMode(mode);
+    });
+    updateEphemerisPreview();
+  }
+
+  /**
    * Initialize Starfield Engine
    */
   function initStarfield() {
@@ -256,45 +300,49 @@
    * Initialize Semicircle Dials
    */
   function initDials() {
-    // 1. Clock Dial
+    const pMode = state.settings.pointerMode || 'auto';
+
     dialClock = new window.StargazerDial('dial-canvas-clock', {
+      pointerMode: pMode,
       labelFormat: (pct) => `${Math.round(pct * 100)}%`
     });
 
-    // 2. Shift Dial
     dialShift = new window.StargazerDial('dial-canvas-shift', {
+      pointerMode: pMode,
       labelFormat: (pct) => `${Math.round(pct * 100)}%`
     });
 
-    // 3. Timer Dial
     dialTimer = new window.StargazerDial('dial-canvas-timer', {
+      pointerMode: pMode,
       labelFormat: (pct) => `${Math.round(pct * 100)}%`
     });
 
-    // 4. Stopwatch Dial
     dialStopwatch = new window.StargazerDial('dial-canvas-stopwatch', {
+      pointerMode: pMode,
       labelFormat: (pct) => `${Math.round(pct * 60)}s`
     });
 
-    // 5. Combined Master Focal Dial
     dialCombFocal = new window.StargazerDial('dial-canvas-combined-focal', {
+      pointerMode: pMode,
       labelFormat: (pct) => `${Math.round(pct * 100)}%`
     });
 
-    // 6. Mini Dials for Combined View
     dialCombTimer = new window.StargazerDial('dial-canvas-comb-timer', {
       isMini: true,
-      showTicks: false
+      showTicks: false,
+      pointerMode: pMode
     });
 
     dialCombStopwatch = new window.StargazerDial('dial-canvas-comb-stopwatch', {
       isMini: true,
-      showTicks: false
+      showTicks: false,
+      pointerMode: pMode
     });
 
     dialCombShift = new window.StargazerDial('dial-canvas-comb-shift', {
       isMini: true,
-      showTicks: false
+      showTicks: false,
+      pointerMode: pMode
     });
 
     applyTheme(state.settings.theme);
@@ -308,29 +356,105 @@
     state.settings.activeMode = modeName;
     window.StargazerStorage.set('activeMode', modeName);
 
-    // Update Nav Buttons
     elements.modeButtons.forEach(btn => {
       btn.classList.toggle('active', btn.dataset.mode === modeName);
     });
 
-    // Update View visibility
     elements.modeViews.forEach(view => {
       view.classList.toggle('view-active', view.id === `view-${modeName}`);
     });
 
-    // Re-render active dials
     setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
     }, 50);
   }
 
   /**
-   * Standard Clock Tick & Calculation
+   * Cycle Center Display Modes
    */
-  function tickClock() {
-    const now = new Date();
+  function cycleClockCenterDisplay() {
+    const cycle = { time: 'remaining', remaining: 'percent', percent: 'time' };
+    state.clockCenterDisplay = cycle[state.clockCenterDisplay] || 'time';
+    state.settings.clockCenterDisplay = state.clockCenterDisplay;
+    window.StargazerStorage.set('clockCenterDisplay', state.clockCenterDisplay);
+    updateCenterDisplayButtons();
+    tickClock();
+  }
 
-    // 1. Time Formatting
+  function cycleShiftCenterDisplay() {
+    const cycle = { percent: 'remaining', remaining: 'time', time: 'percent' };
+    state.shiftCenterDisplay = cycle[state.shiftCenterDisplay] || 'percent';
+    state.settings.shiftCenterDisplay = state.shiftCenterDisplay;
+    window.StargazerStorage.set('shiftCenterDisplay', state.shiftCenterDisplay);
+    updateCenterDisplayButtons();
+    tickClock();
+  }
+
+  function cycleTimerCenterDisplay() {
+    const cycle = { remaining: 'percent', percent: 'time', time: 'remaining' };
+    state.timerCenterDisplay = cycle[state.timerCenterDisplay] || 'remaining';
+    state.settings.timerCenterDisplay = state.timerCenterDisplay;
+    window.StargazerStorage.set('timerCenterDisplay', state.timerCenterDisplay);
+    updateCenterDisplayButtons();
+    updateTimerDisplay();
+  }
+
+  function updateCenterDisplayButtons() {
+    if (elements.clockCenterButtons) {
+      elements.clockCenterButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.clockCenter === state.clockCenterDisplay);
+      });
+    }
+    if (elements.shiftCenterButtons) {
+      elements.shiftCenterButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.shiftCenter === state.shiftCenterDisplay);
+      });
+    }
+    if (elements.timerCenterButtons) {
+      elements.timerCenterButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.timerCenter === state.timerCenterDisplay);
+      });
+    }
+  }
+
+  /**
+   * Update Ephemeris (Sun & Moon phase preview)
+   */
+  function updateEphemerisPreview() {
+    const now = new Date();
+    const moon = window.StargazerMoon.calculateMoonPhase(now);
+    const isDay = window.StargazerMoon.isDaytime(now);
+
+    const mode = state.settings.pointerMode || 'auto';
+    let celestialText = '';
+    if (mode === 'sun') {
+      celestialText = '☀️ Sun (Solar Mode)';
+    } else if (mode === 'moon') {
+      celestialText = `${moon.emoji} ${moon.name} (${moon.illuminatedPercent})`;
+    } else if (mode === 'orb') {
+      celestialText = '⚪ Classic Luminous Orb';
+    } else {
+      // Auto
+      celestialText = isDay
+        ? '☀️ Daylight (Sun Corona)'
+        : `${moon.emoji} Night (${moon.name} ${moon.illuminatedPercent})`;
+    }
+
+    if (elements.footerCelestialStatus) {
+      elements.footerCelestialStatus.textContent = celestialText;
+    }
+    if (elements.settingMoonPhasePreview) {
+      elements.settingMoonPhasePreview.textContent = `${moon.name} ${moon.emoji} (${moon.illuminatedPercent} illuminated)`;
+    }
+    if (elements.settingDaynightPreview) {
+      elements.settingDaynightPreview.textContent = isDay ? '☀️ Daytime (Sun active)' : '🌙 Nighttime (Moon active)';
+    }
+  }
+
+  /**
+   * Format Time String
+   */
+  function formatCurrentTimeString(now) {
     const is12 = state.settings.timeFormat === '12';
     const showSec = state.settings.showSeconds;
 
@@ -339,15 +463,22 @@
     if (is12) {
       ampm = hours >= 12 ? ' PM' : ' AM';
       hours = hours % 12;
-      hours = hours ? hours : 12; // 0 => 12
+      hours = hours ? hours : 12;
     }
 
     const hStr = String(hours).padStart(2, '0');
     const mStr = String(now.getMinutes()).padStart(2, '0');
     const sStr = String(now.getSeconds()).padStart(2, '0');
 
-    const formattedTime = showSec ? `${hStr}:${mStr}:${sStr}${ampm}` : `${hStr}:${mStr}${ampm}`;
-    elements.clockDigitalTime.textContent = formattedTime;
+    return showSec ? `${hStr}:${mStr}:${sStr}${ampm}` : `${hStr}:${mStr}${ampm}`;
+  }
+
+  /**
+   * Standard Clock Tick & Calculation
+   */
+  function tickClock() {
+    const now = new Date();
+    const formattedTime = formatCurrentTimeString(now);
 
     // Date
     if (state.settings.showDate) {
@@ -358,55 +489,84 @@
       elements.clockDate.style.display = 'none';
     }
 
-    // 2. Arc Progress based on arc mode
+    // Arc Progress based on arc scope
     let arcProgress = 0;
     let arcLabelText = '';
+    let remainingMsInScope = 0;
 
     if (state.clockArcMode === 'day') {
       const msToday = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) * 1000 + now.getMilliseconds();
       const totalMsInDay = 86400 * 1000;
       arcProgress = msToday / totalMsInDay;
+      remainingMsInScope = totalMsInDay - msToday;
       arcLabelText = `Day: ${(arcProgress * 100).toFixed(1)}%`;
     } else if (state.clockArcMode === 'hour') {
       const msHour = (now.getMinutes() * 60 + now.getSeconds()) * 1000 + now.getMilliseconds();
       const totalMsInHour = 3600 * 1000;
       arcProgress = msHour / totalMsInHour;
+      remainingMsInScope = totalMsInHour - msHour;
       arcLabelText = `Hour: ${(arcProgress * 100).toFixed(1)}%`;
     } else if (state.clockArcMode === 'halfday') {
       const ms12h = ((now.getHours() % 12) * 3600 + now.getMinutes() * 60 + now.getSeconds()) * 1000 + now.getMilliseconds();
       const totalMs12h = 43200 * 1000;
       arcProgress = ms12h / totalMs12h;
+      remainingMsInScope = totalMs12h - ms12h;
       arcLabelText = `12h Arc: ${(arcProgress * 100).toFixed(1)}%`;
     }
 
     elements.clockArcLabel.textContent = arcLabelText;
-    if (dialClock) dialClock.setProgress(arcProgress);
+    if (dialClock) dialClock.setProgress(arcProgress, false, now);
 
-    // 3. Shift Tracker Tick
-    tickShift(now);
+    // Center Display for Clock: Swap between Time, Remaining, and Percent
+    const pctString = `${(arcProgress * 100).toFixed(1)}%`;
+    const remString = formatHoursMinsSecs(remainingMsInScope);
 
-    // 4. Combined Focal Mode Tick
+    if (state.clockCenterDisplay === 'time') {
+      elements.clockModeLabel.textContent = 'CURRENT TIME';
+      elements.clockDigitalTime.textContent = formattedTime;
+      elements.clockArcLabel.textContent = `${arcLabelText} • ${remString} left`;
+    } else if (state.clockCenterDisplay === 'remaining') {
+      elements.clockModeLabel.textContent = 'TIME REMAINING';
+      elements.clockDigitalTime.textContent = remString;
+      elements.clockArcLabel.textContent = `${formattedTime} • ${pctString} elapsed`;
+    } else if (state.clockCenterDisplay === 'percent') {
+      elements.clockModeLabel.textContent = `${state.clockArcMode.toUpperCase()} PROGRESS`;
+      elements.clockDigitalTime.textContent = pctString;
+      elements.clockArcLabel.textContent = `${formattedTime} • ${remString} left`;
+    }
+
+    // Shift Tracker Tick
+    tickShift(now, formattedTime);
+
+    // Timer Tick updates if swapped to current time
+    if (state.timerCenterDisplay === 'time' && state.activeMode === 'timer') {
+      elements.timerDisplay.textContent = formattedTime;
+    }
+
+    // Combined Focal Mode Tick
     if (state.activeMode === 'combined') {
       if (state.combinedFocal === 'clock') {
-        elements.combFocalBadge.textContent = 'CURRENT TIME';
-        elements.combFocalDigital.textContent = formattedTime;
+        elements.combFocalBadge.textContent = elements.clockModeLabel.textContent;
+        elements.combFocalDigital.textContent = elements.clockDigitalTime.textContent;
         elements.combFocalSub.textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-        elements.combFocalStatusText.textContent = arcLabelText;
-        if (dialCombFocal) dialCombFocal.setProgress(arcProgress);
+        elements.combFocalStatusText.textContent = elements.clockArcLabel.textContent;
+        if (dialCombFocal) dialCombFocal.setProgress(arcProgress, false, now);
       } else {
-        elements.combFocalBadge.textContent = state.shift.title.toUpperCase();
+        elements.combFocalBadge.textContent = elements.shiftNameLabel.textContent;
         elements.combFocalDigital.textContent = elements.shiftPercent.textContent;
         elements.combFocalSub.textContent = `${elements.shiftElapsed.textContent} elapsed | ${elements.shiftRemaining.textContent} left`;
         elements.combFocalStatusText.textContent = elements.shiftStatusText.textContent;
-        if (dialCombFocal) dialCombFocal.setProgress(dialShift ? dialShift.currentProgress : 0);
+        if (dialCombFocal) dialCombFocal.setProgress(dialShift ? dialShift.currentProgress : 0, false, now);
       }
     }
+
+    updateEphemerisPreview();
   }
 
   /**
    * Shift / Timeframe Tracker Calculations
    */
-  function tickShift(now) {
+  function tickShift(now, formattedTime) {
     const [startH, startM] = state.shift.startTime.split(':').map(Number);
     const [endH, endM] = state.shift.endTime.split(':').map(Number);
 
@@ -416,7 +576,7 @@
     let endTime = new Date(now);
     endTime.setHours(endH, endM, 0, 0);
 
-    // Handle overnight shifts (e.g. 22:00 to 06:00)
+    // Handle overnight shifts (e.g. 22:00 to 06:00 or 18:00 to 06:00)
     if (endTime <= startTime) {
       if (now < startTime) {
         startTime.setDate(startTime.getDate() - 1);
@@ -433,7 +593,6 @@
     let statusText = '';
 
     if (now < startTime) {
-      // Before shift
       progress = 0;
       const msUntil = startTime.getTime() - now.getTime();
       const hrsUntil = Math.floor(msUntil / (3600 * 1000));
@@ -442,7 +601,6 @@
       elements.shiftElapsed.textContent = '0h 00m';
       elements.shiftRemaining.textContent = formatHoursMins(totalMs);
     } else if (now >= endTime) {
-      // Completed or overtime
       progress = 1;
       const overtimeMs = now.getTime() - endTime.getTime();
       const otHrs = Math.floor(overtimeMs / (3600 * 1000));
@@ -451,7 +609,6 @@
       elements.shiftElapsed.textContent = formatHoursMins(totalMs);
       elements.shiftRemaining.textContent = '0h 00m';
     } else {
-      // In shift progress
       progress = Math.max(0, Math.min(1, elapsedMs / totalMs));
       statusText = `Ends at ${state.shift.endTime}`;
       elements.shiftElapsed.textContent = formatHoursMins(elapsedMs);
@@ -459,16 +616,29 @@
     }
 
     const pctStr = `${(progress * 100).toFixed(1)}%`;
-    elements.shiftPercent.textContent = pctStr;
-    elements.shiftStatusText.textContent = statusText;
+    const remStr = elements.shiftRemaining.textContent;
+    const elapStr = elements.shiftElapsed.textContent;
 
-    if (dialShift) dialShift.setProgress(progress);
+    // Shift Center Display Swapping: Percent / Remaining / Current Time
+    if (state.shiftCenterDisplay === 'percent') {
+      elements.shiftNameLabel.textContent = `${state.shift.title.toUpperCase()} • PROGRESS`;
+      elements.shiftPercent.textContent = pctStr;
+    } else if (state.shiftCenterDisplay === 'remaining') {
+      elements.shiftNameLabel.textContent = `${state.shift.title.toUpperCase()} • TIME LEFT`;
+      elements.shiftPercent.textContent = remStr;
+    } else if (state.shiftCenterDisplay === 'time') {
+      elements.shiftNameLabel.textContent = `${state.shift.title.toUpperCase()} • CURRENT TIME`;
+      elements.shiftPercent.textContent = formattedTime;
+    }
+
+    elements.shiftStatusText.textContent = statusText;
+    if (dialShift) dialShift.setProgress(progress, false, now);
 
     // Sync Combined Shift Mini Card
     elements.combShiftDigits.textContent = pctStr;
     elements.combShiftStatus.textContent = `${state.shift.startTime} - ${state.shift.endTime}`;
-    elements.combShiftRemaining.textContent = elements.shiftRemaining.textContent;
-    if (dialCombShift) dialCombShift.setProgress(progress);
+    elements.combShiftRemaining.textContent = remStr;
+    if (dialCombShift) dialCombShift.setProgress(progress, false, now);
   }
 
   function formatHoursMins(ms) {
@@ -476,6 +646,17 @@
     const h = Math.floor(totalMins / 60);
     const m = totalMins % 60;
     return `${h}h ${String(m).padStart(2, '0')}m`;
+  }
+
+  function formatHoursMinsSecs(ms) {
+    const totalSecs = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    if (h > 0) {
+      return `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+    }
+    return `${m}m ${String(s).padStart(2, '0')}s`;
   }
 
   /**
@@ -501,7 +682,6 @@
         state.timer.remainingSeconds--;
         updateTimerDisplay();
       } else {
-        // Timer Finished!
         onTimerComplete();
       }
     }, 1000);
@@ -525,13 +705,11 @@
     pauseTimer();
     elements.timerStatusText.textContent = 'Completed!';
     elements.timerDisplay.textContent = '00:00';
-    if (dialTimer) dialTimer.setProgress(0, true);
+    if (dialTimer) dialTimer.setProgress(0, true, new Date());
 
     if (state.settings.soundEnabled) {
       window.StargazerAudio.playChime(state.settings.soundVolume / 100);
     }
-
-    // Flash screen alert
     flashCompletionEffect();
   }
 
@@ -573,15 +751,29 @@
       timeText = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
-    elements.timerDisplay.textContent = timeText;
+    const progress = state.timer.totalSeconds > 0 ? (rem / state.timer.totalSeconds) : 0;
+    const pctText = `${(progress * 100).toFixed(1)}%`;
+    const now = new Date();
+
+    // Timer Center Display Swapping: Remaining / Percent / Current Time
+    if (state.timerCenterDisplay === 'remaining') {
+      elements.timerTitleBadge.textContent = 'COUNTDOWN TIME LEFT';
+      elements.timerDisplay.textContent = timeText;
+    } else if (state.timerCenterDisplay === 'percent') {
+      elements.timerTitleBadge.textContent = 'COUNTDOWN REMAINING %';
+      elements.timerDisplay.textContent = pctText;
+    } else if (state.timerCenterDisplay === 'time') {
+      elements.timerTitleBadge.textContent = 'CURRENT LOCAL TIME';
+      elements.timerDisplay.textContent = formatCurrentTimeString(now);
+    }
+
     elements.combTimerDigits.textContent = timeText;
 
-    const progress = state.timer.totalSeconds > 0 ? (rem / state.timer.totalSeconds) : 0;
-    if (dialTimer) dialTimer.setProgress(progress);
-    if (dialCombTimer) dialCombTimer.setProgress(progress);
+    if (dialTimer) dialTimer.setProgress(progress, false, now);
+    if (dialCombTimer) dialCombTimer.setProgress(progress, false, now);
 
     const totalMins = Math.round(state.timer.totalSeconds / 60);
-    elements.timerSubText.textContent = `Total: ${totalMins} minutes`;
+    elements.timerSubText.textContent = `Total: ${totalMins} minutes (${pctText} left)`;
   }
 
   function updateTimerControls() {
@@ -636,8 +828,8 @@
     updateStopwatchControls();
     elements.stopwatchLapCount.textContent = 'Lap 0';
     elements.lapsList.innerHTML = '<li class="lap-empty">No laps recorded</li>';
-    if (dialStopwatch) dialStopwatch.setProgress(0, true);
-    if (dialCombStopwatch) dialCombStopwatch.setProgress(0, true);
+    if (dialStopwatch) dialStopwatch.setProgress(0, true, new Date());
+    if (dialCombStopwatch) dialCombStopwatch.setProgress(0, true, new Date());
   }
 
   function recordLap() {
@@ -663,7 +855,6 @@
       return;
     }
 
-    // Determine fastest and slowest splits
     let minSplit = Infinity;
     let maxSplit = -Infinity;
     if (state.stopwatch.laps.length > 1) {
@@ -704,8 +895,9 @@
 
     // Dial sweeps 60 seconds per loop
     const progress = (state.stopwatch.elapsedTime % 60000) / 60000;
-    if (dialStopwatch) dialStopwatch.setProgress(progress);
-    if (dialCombStopwatch) dialCombStopwatch.setProgress(progress);
+    const now = new Date();
+    if (dialStopwatch) dialStopwatch.setProgress(progress, false, now);
+    if (dialCombStopwatch) dialCombStopwatch.setProgress(progress, false, now);
   }
 
   function updateStopwatchControls() {
@@ -752,6 +944,60 @@
     elements.modeButtons.forEach(btn => {
       btn.addEventListener('click', () => setMode(btn.dataset.mode));
     });
+
+    // 1-Click Center Display Swapping!
+    if (elements.clockCenterClickArea) {
+      elements.clockCenterClickArea.addEventListener('click', cycleClockCenterDisplay);
+    }
+    if (elements.shiftCenterClickArea) {
+      elements.shiftCenterClickArea.addEventListener('click', cycleShiftCenterDisplay);
+    }
+    if (elements.timerCenterClickArea) {
+      elements.timerCenterClickArea.addEventListener('click', cycleTimerCenterDisplay);
+    }
+    if (elements.combCenterClickArea) {
+      elements.combCenterClickArea.addEventListener('click', () => {
+        if (state.combinedFocal === 'clock') cycleClockCenterDisplay();
+        else cycleShiftCenterDisplay();
+      });
+    }
+
+    // Segmented Center Display Selectors
+    if (elements.clockCenterButtons) {
+      elements.clockCenterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.clockCenterDisplay = btn.dataset.clockCenter;
+          state.settings.clockCenterDisplay = state.clockCenterDisplay;
+          window.StargazerStorage.set('clockCenterDisplay', state.clockCenterDisplay);
+          updateCenterDisplayButtons();
+          tickClock();
+        });
+      });
+    }
+
+    if (elements.shiftCenterButtons) {
+      elements.shiftCenterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.shiftCenterDisplay = btn.dataset.shiftCenter;
+          state.settings.shiftCenterDisplay = state.shiftCenterDisplay;
+          window.StargazerStorage.set('shiftCenterDisplay', state.shiftCenterDisplay);
+          updateCenterDisplayButtons();
+          tickClock();
+        });
+      });
+    }
+
+    if (elements.timerCenterButtons) {
+      elements.timerCenterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.timerCenterDisplay = btn.dataset.timerCenter;
+          state.settings.timerCenterDisplay = state.timerCenterDisplay;
+          window.StargazerStorage.set('timerCenterDisplay', state.timerCenterDisplay);
+          updateCenterDisplayButtons();
+          updateTimerDisplay();
+        });
+      });
+    }
 
     // Clock Arc Selection
     elements.clockArcButtons.forEach(btn => {
@@ -830,6 +1076,7 @@
 
     // Settings Modal
     elements.btnSettings.addEventListener('click', () => {
+      updateEphemerisPreview();
       elements.settingsDialog.showModal();
     });
 
@@ -849,6 +1096,13 @@
         window.StargazerStorage.set('theme', swatch.dataset.theme);
       });
     });
+
+    // Pointer Mode Switcher in Settings
+    if (elements.settingPointerMode) {
+      elements.settingPointerMode.addEventListener('change', () => {
+        applyPointerMode(elements.settingPointerMode.value);
+      });
+    }
 
     // Sound Test Chime
     elements.btnTestChime.addEventListener('click', () => {
@@ -898,6 +1152,14 @@
    * Save Settings from Modal to Storage
    */
   function saveSettingsFromUI() {
+    if (elements.settingPointerMode) {
+      applyPointerMode(elements.settingPointerMode.value);
+    }
+    if (elements.settingCenterDisplay) {
+      state.clockCenterDisplay = elements.settingCenterDisplay.value;
+      state.settings.clockCenterDisplay = state.clockCenterDisplay;
+      updateCenterDisplayButtons();
+    }
     state.settings.starDensity = elements.settingStarDensity.value;
     state.settings.shootingStars = elements.settingShootingStars.checked;
     state.settings.mouseParallax = elements.settingParallax.checked;
@@ -909,7 +1171,6 @@
 
     window.StargazerStorage.saveSettings(state.settings);
 
-    // Apply immediate updates to engines
     if (starfield) {
       starfield.setDensity(state.settings.starDensity);
       starfield.setMeteors(state.settings.shootingStars);
@@ -939,32 +1200,31 @@
    */
   function bindKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
-      // Don't trigger if user is typing in an input
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
 
-      // Space: Toggle active timer or stopwatch
       if (e.code === 'Space') {
         e.preventDefault();
         if (state.activeMode === 'timer') toggleTimer();
         else if (state.activeMode === 'stopwatch') toggleStopwatch();
-        else if (state.activeMode === 'combined') {
-          // In combined mode, toggle timer if set, or stopwatch
-          toggleTimer();
-        }
+        else if (state.activeMode === 'combined') toggleTimer();
       }
 
-      // 'R': Reset active timer or stopwatch
       if (e.code === 'KeyR') {
         if (state.activeMode === 'timer') resetTimer();
         else if (state.activeMode === 'stopwatch') resetStopwatch();
       }
 
-      // 'L': Lap in stopwatch
       if (e.code === 'KeyL' && state.activeMode === 'stopwatch') {
         recordLap();
       }
 
-      // Numbers 1-5: Quick mode switch
+      // 'T': quick toggle center display between Time / Remaining / %
+      if (e.code === 'KeyT') {
+        if (state.activeMode === 'clock') cycleClockCenterDisplay();
+        else if (state.activeMode === 'shift') cycleShiftCenterDisplay();
+        else if (state.activeMode === 'timer') cycleTimerCenterDisplay();
+      }
+
       if (e.key === '1') setMode('clock');
       if (e.key === '2') setMode('shift');
       if (e.key === '3') setMode('timer');
@@ -973,7 +1233,6 @@
     });
   }
 
-  // Start on DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
