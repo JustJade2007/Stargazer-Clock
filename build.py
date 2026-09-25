@@ -16,6 +16,8 @@ def clean_previous_builds():
     """Removes previous build artifacts to prevent stale caching."""
     if sys.platform == "win32":
         try:
+            # Terminate any running instances so the .exe is not file-locked by Windows
+            subprocess.run(["taskkill", "/IM", "Stargazer-Clock.exe", "/F"], capture_output=True)
             subprocess.run(["cmd.exe", "/c", f'attrib -r -s -h /s /d "{BUILD_DIR}\\*" & attrib -r -s -h "{BUILD_DIR}"'], capture_output=True)
             subprocess.run(["cmd.exe", "/c", f'attrib -r -s -h /s /d "{DIST_DIR}\\*" & attrib -r -s -h "{DIST_DIR}"'], capture_output=True)
         except Exception:

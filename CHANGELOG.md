@@ -31,8 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Synchronized cookie storage with fallback to localStorage for all settings and presets.
   - Export and import configuration as JSON.
 - **Desktop Executable Packaging (`desktop_launcher.py`, `build.py`)**:
-  - Standalone single-file Windows executable (`dist/Stargazer-Clock.exe`) compiled with PyInstaller in windowed mode.
-  - Dedicated Microsoft Edge App Mode runner with fallback to default browser.
+### Fixed
+- **Semicircle Progress Arc Direction & Coordinates (`js/semicircle.js`)**: Fixed canvas arc angle orientation and clockwise sweep direction so the progress fill tracks seamlessly across the upper arch from 0% to 100% instead of clipping below the baseline.
+- **Build Script Process Lock Handling (`build.py`)**: Automatically terminates active desktop processes before compiling to prevent Windows executable write lock errors.
 
 ## [0.1.0] - 2026-09-25
 

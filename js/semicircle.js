@@ -100,7 +100,7 @@
       if (radius <= 0) return;
 
       const startAngle = Math.PI;
-      const endAngle = 0; // standard 180 degree semicircle arch
+      const endAngle = 2 * Math.PI; // standard 180 degree upper semicircle arch
 
       // 1. Draw Outer Track Guide Groove
       ctx.beginPath();
@@ -119,16 +119,16 @@
 
         for (let i = 0; i <= totalTicks; i++) {
           const tickPct = i / totalTicks;
-          // Angle ranges from PI to 0
-          const angle = Math.PI - (tickPct * Math.PI);
+          // Sweep clockwise along upper semicircle from Math.PI to 2*Math.PI
+          const angle = Math.PI + (tickPct * Math.PI);
           const isMajor = i % 5 === 0;
           const r1 = tickInnerR;
           const r2 = isMajor ? tickMajorR : tickMinorR;
 
           const x1 = centerX + Math.cos(angle) * r1;
-          const y1 = centerY - Math.sin(angle) * r1;
+          const y1 = centerY + Math.sin(angle) * r1;
           const x2 = centerX + Math.cos(angle) * r2;
-          const y2 = centerY - Math.sin(angle) * r2;
+          const y2 = centerY + Math.sin(angle) * r2;
 
           ctx.beginPath();
           ctx.moveTo(x1, y1);
@@ -141,7 +141,7 @@
           if (isMajor && this.options.showLabels) {
             const labelR = tickMajorR - 10;
             const lx = centerX + Math.cos(angle) * labelR;
-            const ly = centerY - Math.sin(angle) * labelR;
+            const ly = centerY + Math.sin(angle) * labelR;
 
             ctx.font = '10px "JetBrains Mono", monospace';
             ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
@@ -154,9 +154,8 @@
 
       // 3. Draw Active Progress Arc
       if (this.currentProgress > 0.001) {
-        // Progress angle: from PI sweeping clockwise towards 0
-        // e.g. at 50%: PI - 0.5*PI = PI/2 (top center)
-        const progressAngle = Math.PI - (this.currentProgress * Math.PI);
+        // Progress angle sweeps clockwise from Math.PI (left, 0%) towards 2*Math.PI (right, 100%)
+        const currentAngle = Math.PI + (this.currentProgress * Math.PI);
 
         // Gradient
         const grad = ctx.createLinearGradient(centerX - radius, centerY, centerX + radius, centerY);
@@ -166,9 +165,7 @@
         // Outer Glow Pass
         ctx.save();
         ctx.beginPath();
-        // Sweep in canvas angle: startAngle = PI (180deg), goes clockwise to 2*PI - (progressAngle),
-        // or counter-clockwise from PI to progressAngle:
-        ctx.arc(centerX, centerY, radius, Math.PI, progressAngle, true);
+        ctx.arc(centerX, centerY, radius, Math.PI, currentAngle, false);
         ctx.strokeStyle = this.options.glowColor;
         ctx.lineWidth = this.options.lineWidth + (isMini ? 2 : 6);
         ctx.shadowColor = this.options.glowColor;
@@ -180,15 +177,15 @@
 
         // Core Solid Crisp Arc Pass
         ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, Math.PI, progressAngle, true);
+        ctx.arc(centerX, centerY, radius, Math.PI, currentAngle, false);
         ctx.strokeStyle = grad;
         ctx.lineWidth = this.options.lineWidth;
         ctx.lineCap = 'round';
         ctx.stroke();
 
         // 4. Indicator Pointer Orb
-        const pointerX = centerX + Math.cos(progressAngle) * radius;
-        const pointerY = centerY - Math.sin(progressAngle) * radius;
+        const pointerX = centerX + Math.cos(currentAngle) * radius;
+        const pointerY = centerY + Math.sin(currentAngle) * radius;
 
         // Radiating Glow
         ctx.save();
