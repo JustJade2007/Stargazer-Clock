@@ -40,6 +40,7 @@
     },
     combinedFocal: 'clock',
     centerDisplayMode: 'time', // 'time', 'remaining', 'percent'
+    popoutViewMode: 'dial', // 'dial' (semicircle + text) or 'text' (text only)
     pointerMode: 'auto' // 'auto', 'sun', 'moon', 'orb'
   };
 

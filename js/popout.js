@@ -1,8 +1,9 @@
 /**
- * Stargazer Clock - Pop Out & Always-on-Top Pinned Window Engine
- * Enables popping out the active clock/timer into a floating, compact window
- * using Document Picture-in-Picture (Chromium/Edge native OS Topmost)
- * with seamless fallback to standalone popup windows and Windows API pinning.
+ * Stargazer Clock - Compact Pop Out & Always-on-Top Pinned Window Engine
+ * Provides an ultra-compact floating desktop clock with:
+ * - Option to show Semicircle dial or Just Text / numbers
+ * - Compact default sizing with essential controls
+ * - True OS-level Always-on-Top pinning across apps via Document PiP and Windows API
  */
 
 (function (window) {
@@ -11,7 +12,8 @@
   // Popout Manager State
   const state = {
     isOpen: false,
-    isPinned: true, // PiP windows are topmost by OS default
+    isPinned: true,
+    viewMode: 'dial', // 'dial' (semicircle + text) or 'text' (just numbers/text)
     pipWindow: null,
     dialPopout: null,
     activeMode: 'clock',
@@ -32,6 +34,13 @@
      */
     isPopoutOpen() {
       return state.isOpen && state.pipWindow && !state.pipWindow.closed;
+    },
+
+    /**
+     * Get current view mode ('dial' or 'text')
+     */
+    getViewMode() {
+      return state.viewMode;
     },
 
     /**
@@ -57,6 +66,11 @@
       }
 
       state.activeMode = preferredMode || (window.StargazerApp ? window.StargazerApp.getActiveMode() : 'clock');
+      
+      // Load saved view mode ('dial' or 'text')
+      if (window.StargazerStorage) {
+        state.viewMode = window.StargazerStorage.get('popoutViewMode') || 'dial';
+      }
 
       if (this.isPipSupported()) {
         await this.openDocumentPip();
@@ -70,9 +84,10 @@
      */
     async openDocumentPip() {
       try {
+        const isText = state.viewMode === 'text';
         const pipOptions = {
-          width: 380,
-          height: 480,
+          width: 270,
+          height: isText ? 135 : 230,
           disallowReturnToOpener: false
         };
 
@@ -81,39 +96,27 @@
         state.isOpen = true;
         state.isPinned = true;
 
-        // Copy styles and fonts from main window into PiP window
+        // Copy styles, fonts, and theme from main window
         this.injectStylesToPip(pipWin);
 
-        // Render Popout HTML structure
+        // Render compact popout UI structure
         this.renderPipContent(pipWin);
 
         // Bind events in PiP window
         this.bindPipEvents(pipWin);
 
-        // Initialize Semicircle Dial inside PiP window
-        const canvas = pipWin.document.getElementById('dial-canvas-popout');
-        if (canvas && window.SemicircleDial) {
-          state.dialPopout = new window.SemicircleDial(canvas, {
-            radiusScale: 0.88,
-            lineWidth: 18,
-            trackWidth: 10,
-            showTicks: true,
-            tickCount: 24,
-            needleLength: 0.90,
-            showGlow: true
-          });
-          state.dialPopout.init();
-        }
+        // Initialize Semicircle Dial if in dial mode
+        this.initPipDial(pipWin);
 
         // Handle PiP window close
         pipWin.addEventListener('pagehide', () => {
           this.handlePipClosed();
         });
 
-        // Update button state in main window
+        // Update main window button
         this.updateMainUiButton(true);
 
-        // Automatically pin via Windows API if running in desktop executable
+        // Call desktop launcher pin API to reinforce OS-level topmost
         this.callPinApi(true);
 
       } catch (err) {
@@ -126,18 +129,20 @@
      * Open standard Popup Window as fallback
      */
     openFallbackWindow() {
-      const w = 380;
-      const h = 480;
-      const left = window.screenLeft !== undefined ? window.screenLeft + (window.outerWidth - w) : 100;
-      const top = window.screenTop !== undefined ? window.screenTop + 50 : 100;
+      const isText = state.viewMode === 'text';
+      const w = 270;
+      const h = isText ? 135 : 230;
+      const left = window.screenLeft !== undefined ? window.screenLeft + (window.outerWidth - w - 20) : 100;
+      const top = window.screenTop !== undefined ? window.screenTop + 60 : 100;
 
-      const url = `index.html?popout=true&mode=${encodeURIComponent(state.activeMode)}`;
+      const url = `index.html?popout=true&mode=${encodeURIComponent(state.activeMode)}&view=${state.viewMode}`;
       const features = `width=${w},height=${h},top=${top},left=${left},resizable=yes,scrollbars=no,status=no,toolbar=no,menubar=no,location=no`;
 
       const popup = window.open(url, 'StargazerPopout', features);
       if (popup) {
         state.pipWindow = popup;
         state.isOpen = true;
+        state.isPinned = true;
         this.updateMainUiButton(true);
         this.callPinApi(true);
       } else {
@@ -174,11 +179,30 @@
     },
 
     /**
+     * Initialize Semicircle Dial inside PiP
+     */
+    initPipDial(pipWin) {
+      const canvas = pipWin.document.getElementById('dial-canvas-popout');
+      if (canvas && window.SemicircleDial) {
+        state.dialPopout = new window.SemicircleDial(canvas, {
+          radiusScale: 0.88,
+          lineWidth: 14,
+          trackWidth: 8,
+          showTicks: true,
+          tickCount: 20,
+          needleLength: 0.88,
+          showGlow: true
+        });
+        state.dialPopout.init();
+      }
+    },
+
+    /**
      * Copy stylesheets, themes, and Google fonts into PiP window
      */
     injectStylesToPip(pipWin) {
       const doc = pipWin.document;
-      doc.title = 'Stargazer Clock (Pinned)';
+      doc.title = 'Stargazer Popout (Pinned)';
 
       // Copy theme attribute
       const activeTheme = document.body.getAttribute('data-theme') || 'cyan';
@@ -205,7 +229,7 @@
         }
       });
 
-      // Inject explicit compact popout styles
+      // Compact Popout Styling
       const customStyle = doc.createElement('style');
       customStyle.textContent = `
         html, body {
@@ -214,7 +238,7 @@
           margin: 0;
           padding: 0;
           overflow: hidden;
-          background: var(--bg-deep-space, #060713);
+          background: #060713;
           color: var(--text-main, #f0f4fc);
           font-family: var(--font-sans, -apple-system, sans-serif);
           user-select: none;
@@ -224,87 +248,83 @@
           flex-direction: column;
           width: 100%;
           height: 100%;
-          padding: 10px 14px 14px 14px;
+          padding: 6px 10px 8px 10px;
           box-sizing: border-box;
-          background: radial-gradient(circle at 50% 25%, #101538 0%, #080918 60%, #03040b 100%);
+          background: radial-gradient(circle at 50% 25%, #101538 0%, #080918 65%, #03040b 100%);
+          transition: all 0.2s ease;
         }
+        
+        /* Header */
         .popout-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding-bottom: 6px;
+          padding-bottom: 4px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          gap: 6px;
+          gap: 4px;
+          height: 24px;
+          flex-shrink: 0;
         }
         .popout-modes {
           display: flex;
-          gap: 4px;
+          gap: 2px;
         }
         .popout-mode-chip {
           background: rgba(255, 255, 255, 0.06);
           border: 1px solid rgba(255, 255, 255, 0.1);
           color: var(--text-muted, #8b9bb4);
           font-size: 0.72rem;
-          padding: 4px 8px;
-          border-radius: 6px;
+          padding: 2px 5px;
+          border-radius: 4px;
           cursor: pointer;
           display: flex;
           align-items: center;
-          gap: 4px;
-          transition: all 0.2s ease;
+          transition: all 0.15s ease;
         }
         .popout-mode-chip.active {
           background: var(--primary-color-dim, rgba(0, 242, 254, 0.2));
           border-color: var(--primary-color, #00f2fe);
-          color: var(--text-main, #fff);
-          font-weight: 600;
+          color: #fff;
         }
         .popout-actions {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 4px;
         }
-        .popout-pin-btn {
-          background: rgba(0, 242, 254, 0.12);
-          border: 1px solid var(--primary-color, #00f2fe);
-          color: var(--primary-color, #00f2fe);
+        .popout-icon-btn {
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: var(--text-muted, #8b9bb4);
           font-size: 0.72rem;
-          padding: 4px 8px;
-          border-radius: 6px;
+          padding: 2px 6px;
+          border-radius: 4px;
           cursor: pointer;
           display: flex;
           align-items: center;
-          gap: 4px;
-          font-weight: 600;
-          transition: all 0.2s;
+          gap: 3px;
+          font-weight: 500;
+          transition: all 0.15s;
         }
-        .popout-pin-btn.unpinned {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.2);
-          color: var(--text-muted, #8b9bb4);
-        }
-        .popout-dock-btn {
-          background: transparent;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: var(--text-muted, #8b9bb4);
-          font-size: 0.75rem;
-          padding: 4px 7px;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .popout-dock-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
+        .popout-icon-btn:hover {
+          background: rgba(255, 255, 255, 0.12);
           color: #fff;
         }
-        .popout-dial-area {
+        .popout-icon-btn.active {
+          background: rgba(0, 242, 254, 0.18);
+          border-color: var(--primary-color, #00f2fe);
+          color: var(--primary-color, #00f2fe);
+          box-shadow: 0 0 8px var(--primary-glow, rgba(0, 242, 254, 0.3));
+        }
+
+        /* Center Body */
+        .popout-body {
           position: relative;
           width: 100%;
           flex: 1;
           display: flex;
           align-items: center;
           justify-content: center;
-          min-height: 190px;
+          overflow: hidden;
         }
         .popout-canvas {
           width: 100%;
@@ -313,7 +333,7 @@
         }
         .popout-center-content {
           position: absolute;
-          bottom: 14%;
+          bottom: 12%;
           left: 50%;
           transform: translateX(-50%);
           display: flex;
@@ -321,61 +341,78 @@
           align-items: center;
           text-align: center;
           cursor: pointer;
-          width: 90%;
+          width: 95%;
         }
         .popout-badge {
-          font-size: 0.65rem;
+          font-size: 0.6rem;
           letter-spacing: 0.08em;
           text-transform: uppercase;
           color: var(--text-dim, #54647e);
-          margin-bottom: 2px;
+          margin-bottom: 1px;
         }
         .popout-digits {
-          font-size: 2.1rem;
+          font-size: 1.85rem;
           font-family: var(--font-mono, monospace);
           font-weight: 700;
           color: var(--text-main, #fff);
-          text-shadow: 0 0 16px var(--primary-glow, rgba(0, 242, 254, 0.4));
+          text-shadow: 0 0 14px var(--primary-glow, rgba(0, 242, 254, 0.4));
           letter-spacing: -0.02em;
-          line-height: 1.1;
+          line-height: 1.05;
         }
         .popout-subtext {
-          font-size: 0.75rem;
+          font-size: 0.68rem;
           color: var(--text-muted, #8b9bb4);
-          margin-top: 2px;
+          margin-top: 1px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
           max-width: 100%;
         }
-        .popout-swap-hint {
-          font-size: 0.62rem;
-          color: var(--text-dim, #54647e);
-          opacity: 0.8;
+
+        /* Text-Only Mode Styles */
+        .popout-container.mode-text-only .popout-canvas {
+          display: none !important;
+        }
+        .popout-container.mode-text-only .popout-center-content {
+          position: relative;
+          bottom: auto;
+          left: auto;
+          transform: none;
+          padding: 4px 0;
+          width: 100%;
+        }
+        .popout-container.mode-text-only .popout-digits {
+          font-size: 2.3rem;
+        }
+        .popout-container.mode-text-only .popout-subtext {
+          font-size: 0.75rem;
           margin-top: 2px;
         }
-        .popout-controls {
-          padding-top: 8px;
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+        /* Footer Controls */
+        .popout-footer {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          min-height: 40px;
+          gap: 6px;
+          padding-top: 4px;
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          height: 26px;
+          flex-shrink: 0;
         }
         .popout-btn-action {
           background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.14);
           color: var(--text-main, #fff);
-          font-size: 0.78rem;
-          padding: 6px 14px;
-          border-radius: 8px;
+          font-size: 0.72rem;
+          padding: 2px 10px;
+          border-radius: 5px;
           cursor: pointer;
           display: flex;
           align-items: center;
-          gap: 5px;
+          gap: 4px;
           font-weight: 500;
-          transition: all 0.2s;
+          transition: all 0.15s;
         }
         .popout-btn-action.primary {
           background: var(--primary-color, #00f2fe);
@@ -383,16 +420,13 @@
           color: #03040b;
           font-weight: 600;
         }
-        .popout-btn-action:hover {
-          filter: brightness(1.15);
-        }
         .popout-btn-chip {
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
           color: var(--text-muted, #8b9bb4);
-          font-size: 0.7rem;
-          padding: 4px 8px;
-          border-radius: 6px;
+          font-size: 0.68rem;
+          padding: 2px 6px;
+          border-radius: 4px;
           cursor: pointer;
         }
         .popout-btn-chip.active {
@@ -409,38 +443,42 @@
      */
     renderPipContent(pipWin) {
       const doc = pipWin.document;
+      const isText = state.viewMode === 'text';
+
       doc.body.innerHTML = `
-        <div class="popout-container">
+        <div class="popout-container ${isText ? 'mode-text-only' : ''}" id="popout-container">
           <header class="popout-header">
             <div class="popout-modes" role="group" aria-label="Popout Modes">
-              <button type="button" class="popout-mode-chip active" data-popout-mode="clock" title="Standard Clock">🕐 Clock</button>
-              <button type="button" class="popout-mode-chip" data-popout-mode="shift" title="Shift Tracker">📊 Shift</button>
-              <button type="button" class="popout-mode-chip" data-popout-mode="timer" title="Timer">⏳ Timer</button>
-              <button type="button" class="popout-mode-chip" data-popout-mode="stopwatch" title="Stopwatch">⏱️ Lap</button>
+              <button type="button" class="popout-mode-chip active" data-popout-mode="clock" title="Standard Clock">🕐</button>
+              <button type="button" class="popout-mode-chip" data-popout-mode="shift" title="Shift Tracker">📊</button>
+              <button type="button" class="popout-mode-chip" data-popout-mode="timer" title="Countdown Timer">⏳</button>
+              <button type="button" class="popout-mode-chip" data-popout-mode="stopwatch" title="Precision Stopwatch">⏱️</button>
             </div>
             <div class="popout-actions">
-              <button type="button" class="popout-pin-btn" id="popout-pin-toggle" title="Pinned as Top Window (Always on Top)">
-                <span>📌</span>
-                <span id="popout-pin-label">Pinned</span>
+              <button type="button" class="popout-icon-btn ${isText ? 'active' : ''}" id="popout-btn-view-toggle" title="Toggle between Semicircle and Just Text">
+                <span id="popout-view-icon">${isText ? '⌒' : '𝐓'}</span>
+                <span id="popout-view-label">${isText ? 'Dial' : 'Text'}</span>
               </button>
-              <button type="button" class="popout-dock-btn" id="popout-btn-dock" title="Dock back into main window">
-                <span>⤵ Dock</span>
+              <button type="button" class="popout-icon-btn active" id="popout-pin-toggle" title="Pinned as Top Window (Always on Top)">
+                <span id="popout-pin-icon">📌</span>
+              </button>
+              <button type="button" class="popout-icon-btn" id="popout-btn-dock" title="Dock back into main window">
+                <span>✕</span>
               </button>
             </div>
           </header>
 
-          <main class="popout-dial-area">
+          <main class="popout-body">
             <canvas id="dial-canvas-popout" class="popout-canvas"></canvas>
             <div class="popout-center-content" id="popout-center-click" title="Click to swap Time / Left / %">
               <span class="popout-badge" id="popout-badge">CURRENT TIME</span>
               <span class="popout-digits" id="popout-digits">12:00:00</span>
               <span class="popout-subtext" id="popout-subtext">Day: 50.0%</span>
-              <span class="popout-swap-hint">⇄ Click to swap</span>
             </div>
           </main>
 
-          <footer class="popout-controls" id="popout-controls-row">
-            <!-- Dynamic controls populated based on mode -->
+          <footer class="popout-footer" id="popout-controls-row">
+            <!-- Dynamic compact controls populated based on mode -->
           </footer>
         </div>
       `;
@@ -464,6 +502,14 @@
         });
       });
 
+      // View Mode Toggle (Semicircle vs Just Text)
+      const viewBtn = doc.getElementById('popout-btn-view-toggle');
+      if (viewBtn) {
+        viewBtn.addEventListener('click', () => {
+          this.toggleViewMode();
+        });
+      }
+
       // Pin Toggle
       const pinBtn = doc.getElementById('popout-pin-toggle');
       if (pinBtn) {
@@ -472,7 +518,7 @@
         });
       }
 
-      // Dock Back button
+      // Dock / Close button
       const dockBtn = doc.getElementById('popout-btn-dock');
       if (dockBtn) {
         dockBtn.addEventListener('click', () => {
@@ -494,6 +540,43 @@
       }
 
       this.updatePopoutControls(doc);
+    },
+
+    /**
+     * Toggle View Mode between Semicircle and Just Text
+     */
+    toggleViewMode() {
+      state.viewMode = state.viewMode === 'dial' ? 'text' : 'dial';
+      if (window.StargazerStorage) {
+        window.StargazerStorage.set('popoutViewMode', state.viewMode);
+      }
+
+      if (state.pipWindow && !state.pipWindow.closed) {
+        const doc = state.pipWindow.document;
+        const container = doc.getElementById('popout-container');
+        const viewBtn = doc.getElementById('popout-btn-view-toggle');
+        const viewIcon = doc.getElementById('popout-view-icon');
+        const viewLabel = doc.getElementById('popout-view-label');
+
+        const isText = state.viewMode === 'text';
+
+        if (container) container.classList.toggle('mode-text-only', isText);
+        if (viewBtn) viewBtn.classList.toggle('active', isText);
+        if (viewIcon) viewIcon.textContent = isText ? '⌒' : '𝐓';
+        if (viewLabel) viewLabel.textContent = isText ? 'Dial' : 'Text';
+
+        // Dynamically resize window to match view mode
+        try {
+          if (isText) {
+            state.pipWindow.resizeTo(270, 135);
+          } else {
+            state.pipWindow.resizeTo(270, 230);
+            if (state.dialPopout) {
+              setTimeout(() => state.dialPopout.resize(), 50);
+            }
+          }
+        } catch (e) {}
+      }
     },
 
     /**
@@ -524,17 +607,20 @@
       if (mode === 'clock') {
         const btnDay = doc.createElement('button');
         btnDay.className = 'popout-btn-chip';
-        btnDay.textContent = 'Day 24h';
+        btnDay.textContent = '24h';
+        btnDay.title = 'Day Progress';
         btnDay.onclick = () => window.StargazerApp && window.StargazerApp.setClockArc('day');
 
         const btnHour = doc.createElement('button');
         btnHour.className = 'popout-btn-chip';
-        btnHour.textContent = 'Hour 60m';
+        btnHour.textContent = '60m';
+        btnHour.title = 'Hour Progress';
         btnHour.onclick = () => window.StargazerApp && window.StargazerApp.setClockArc('hour');
 
         const btn12 = doc.createElement('button');
         btn12.className = 'popout-btn-chip';
-        btn12.textContent = '12h Cycle';
+        btn12.textContent = '12h';
+        btn12.title = '12-Hour Cycle';
         btn12.onclick = () => window.StargazerApp && window.StargazerApp.setClockArc('halfday');
 
         row.appendChild(btnDay);
@@ -557,7 +643,8 @@
 
         const btnReset = doc.createElement('button');
         btnReset.className = 'popout-btn-action';
-        btnReset.textContent = '🔄 Reset';
+        btnReset.textContent = '🔄';
+        btnReset.title = 'Reset Timer';
         btnReset.onclick = () => {
           if (window.StargazerApp) {
             window.StargazerApp.resetTimer();
@@ -574,7 +661,7 @@
         const btnToggle = doc.createElement('button');
         btnToggle.className = 'popout-btn-action primary';
         btnToggle.id = 'popout-btn-sw-toggle';
-        btnToggle.textContent = isRunning ? '⏸ Pause' : '▶ Start';
+        btnToggle.textContent = isRunning ? '⏸' : '▶';
         btnToggle.onclick = () => {
           if (window.StargazerApp) {
             window.StargazerApp.toggleStopwatch();
@@ -584,12 +671,14 @@
 
         const btnLap = doc.createElement('button');
         btnLap.className = 'popout-btn-action';
-        btnLap.textContent = '🏁 Lap';
+        btnLap.textContent = '🏁';
+        btnLap.title = 'Record Lap';
         btnLap.onclick = () => window.StargazerApp && window.StargazerApp.recordLap();
 
         const btnReset = doc.createElement('button');
         btnReset.className = 'popout-btn-action';
-        btnReset.textContent = '🔄 Reset';
+        btnReset.textContent = '🔄';
+        btnReset.title = 'Reset Stopwatch';
         btnReset.onclick = () => {
           if (window.StargazerApp) {
             window.StargazerApp.resetStopwatch();
@@ -619,10 +708,10 @@
 
       if (state.pipWindow && !state.pipWindow.closed) {
         const pinBtn = state.pipWindow.document.getElementById('popout-pin-toggle');
-        const pinLabel = state.pipWindow.document.getElementById('popout-pin-label');
-        if (pinBtn && pinLabel) {
-          pinBtn.classList.toggle('unpinned', !state.isPinned);
-          pinLabel.textContent = state.isPinned ? 'Pinned' : 'Pin';
+        const pinIcon = state.pipWindow.document.getElementById('popout-pin-icon');
+        if (pinBtn) {
+          pinBtn.classList.toggle('active', state.isPinned);
+          if (pinIcon) pinIcon.textContent = state.isPinned ? '📌' : '📍';
           pinBtn.title = state.isPinned ? 'Pinned as Top Window (Always on Top)' : 'Click to pin window on top';
         }
       }
@@ -633,10 +722,10 @@
      */
     callPinApi(pinState) {
       try {
-        fetch(`/api/pin?state=${pinState ? 1 : 0}&title=Stargazer`, { method: 'GET' })
-          .catch(() => {
-            // Static/browser environment without local desktop launcher server - perfectly fine!
-          });
+        const s = pinState ? 1 : 0;
+        // Search both Popout and Stargazer to ensure the window is captured
+        fetch(`/api/pin?state=${s}&title=Popout`, { method: 'GET' }).catch(() => {});
+        fetch(`/api/pin?state=${s}&title=Stargazer`, { method: 'GET' }).catch(() => {});
       } catch (e) {}
     },
 
@@ -704,7 +793,7 @@
 
         const swBtn = doc.getElementById('popout-btn-sw-toggle');
         if (swBtn && appState.stopwatch) {
-          swBtn.textContent = appState.stopwatch.isRunning ? '⏸ Pause' : '▶ Start';
+          swBtn.textContent = appState.stopwatch.isRunning ? '⏸' : '▶';
         }
       }
 
@@ -712,8 +801,8 @@
       if (digitsElem && digits) digitsElem.textContent = digits;
       if (subtextElem && subtext) subtextElem.textContent = subtext;
 
-      // Update Semicircle Dial
-      if (state.dialPopout) {
+      // Update Semicircle Dial only if in dial mode
+      if (state.viewMode === 'dial' && state.dialPopout) {
         state.dialPopout.setProgress(progress, false, now);
       }
     }

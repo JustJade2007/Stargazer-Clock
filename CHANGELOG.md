@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-09-25
+
+### Fixed
+- **OS-Level Window Pinning Above All Applications (`desktop_launcher.py`, `js/popout.js`)**:
+  - Resolved 64-bit Windows ctypes integer truncation on `HWND_TOPMOST` handle pointer (`wintypes.HWND(-1)` vs 32-bit int), which previously caused Windows to place the window over the taskbar but not in front of active applications.
+  - Added extended window style flag `WS_EX_TOPMOST` via `SetWindowLongPtrW`.
+  - Added a background pinning daemon thread in `desktop_launcher.py` that continuously asserts the topmost z-order position, guaranteeing the window stays in front of all open applications.
+
+### Added
+- **Semicircle vs. Just Text View Toggle (`js/popout.js`, `css/style.css`, `js/storage.js`)**:
+  - Added a one-click view toggle button (`⌒ Semicircle` ⇄ `𝐓 Text Only`) in the floating window header.
+  - In **Text Only** mode, hides the semicircle canvas and presents a streamlined HUD displaying prominently centered digital numbers/time, badges, and status.
+  - Automatically resizes the window dynamically (`270×230` for Semicircle mode, `270×135` for Text Only mode).
+  - Persists the user's view mode preference in cookies and storage.
+- **Compact Default Sizing & Streamlined Controls (`js/popout.js`, `css/style.css`)**:
+  - Reduced the default floating window size by over 50% for a cleaner, non-intrusive desktop experience.
+  - Minimalist layout focused strictly on the semicircle (or text), large primary digits, and essential control buttons.
+
 ## [0.5.0] - 2026-09-25
 
 ### Added

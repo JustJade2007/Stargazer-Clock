@@ -95,6 +95,9 @@
       if (paramMode) {
         state.settings.activeMode = paramMode;
       }
+      if (urlParams.get('view') === 'text') {
+        elements.body.classList.add('mode-text-only');
+      }
     }
     setMode(state.settings.activeMode || 'clock');
   }
