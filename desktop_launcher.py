@@ -27,9 +27,65 @@ def find_free_port():
         return s.getsockname()[1]
 
 class QuietHandler(SimpleHTTPRequestHandler):
-    """HTTP Request Handler that serves files silently without console logging."""
+    """HTTP Request Handler that serves files silently and handles window pinning API."""
     def log_message(self, format, *args):
         pass
+
+    def do_GET(self):
+        if self.path.startswith('/api/pin'):
+            try:
+                import urllib.parse
+                parsed = urllib.parse.urlparse(self.path)
+                params = urllib.parse.parse_qs(parsed.query)
+                pin_state = params.get('state', ['1'])[0] == '1'
+                title_filter = params.get('title', ['Stargazer'])[0]
+
+                success = False
+                if sys.platform == 'win32':
+                    import ctypes
+                    user32 = ctypes.windll.user32
+
+                    HWND_TOPMOST = -1
+                    HWND_NOTOPMOST = -2
+                    SWP_NOMOVE = 0x0002
+                    SWP_NOSIZE = 0x0001
+                    SWP_SHOWWINDOW = 0x0040
+                    target_flag = HWND_TOPMOST if pin_state else HWND_NOTOPMOST
+
+                    WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+                    matched_hwnds = []
+
+                    def enum_windows_callback(hwnd, lParam):
+                        if user32.IsWindowVisible(hwnd):
+                            length = user32.GetWindowTextLengthW(hwnd)
+                            if length > 0:
+                                buffer = ctypes.create_unicode_buffer(length + 1)
+                                user32.GetWindowTextW(hwnd, buffer, length + 1)
+                                if title_filter.lower() in buffer.value.lower():
+                                    matched_hwnds.append(hwnd)
+                        return True
+
+                    proc = WNDENUMPROC(enum_windows_callback)
+                    user32.EnumWindows(proc, 0)
+
+                    for hwnd in matched_hwnds:
+                        user32.SetWindowPos(hwnd, target_flag, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW)
+                        success = True
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                import json
+                self.wfile.write(json.dumps({'success': success, 'pinned': pin_state}).encode('utf-8'))
+                return
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(b'{"error": "Failed to set topmost window"}')
+                return
+        return super().do_GET()
 
 def start_server(base_dir, port):
     """Starts the local static file server."""

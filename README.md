@@ -130,6 +130,7 @@ Outputs: `dist/Stargazer-Clock.exe` (Standalone windowed application with embedd
 | <kbd>R</kbd> | Reset active timer or stopwatch |
 | <kbd>L</kbd> | Record lap split (Stopwatch mode) |
 | <kbd>T</kbd> | Cycle center display (Current Time ⇄ Time Left ⇄ %) |
+| <kbd>P</kbd> | Pop out / dock floating clock window (Always on Top) |
 | <kbd>1</kbd> - <kbd>5</kbd> | Quick switch between Clock, Shift, Timer, Stopwatch, and Combined |
 | <kbd>F11</kbd> | Toggle ambient fullscreen mode |
 
@@ -145,6 +146,7 @@ Outputs: `dist/Stargazer-Clock.exe` (Standalone windowed application with embedd
 - [x] Cookie and localStorage state synchronization.
 - [x] Web Audio API synthetic celestial chime notifications on timer completion.
 - [x] Standalone desktop package build script (`dist/Stargazer-Clock.exe`).
+- [x] Pop out floating clock with OS-level always-on-top window pinning.
 - [ ] Automated GitHub Pages deployment workflow.
 
 ---

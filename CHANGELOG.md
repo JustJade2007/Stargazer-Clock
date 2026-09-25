@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-09-25
+
+### Added
+- **Pop Out & Always-on-Top Pinned Window (`js/popout.js`, `desktop_launcher.py`, `index.html`, `css/style.css`, `js/app.js`)**:
+  - Added ability to pop out the currently displayed clock into a floating, compact window.
+  - Native **OS-level Always-on-Top Pinning** via Chromium/Edge **Document Picture-in-Picture API** (`documentPictureInPicture.requestWindow`), keeping the floating clock pinned above all windows, games, and applications.
+  - Desktop executable Windows API pinning support (`/api/pin`) using `ctypes.windll.user32.SetWindowPos(HWND_TOPMOST)` for standalone launcher and fallback popups.
+  - Interactive mini popout header with quick mode switcher tabs (Clock, Shift Tracker, Timer, Stopwatch), Pin status/toggle button (`📌 Pinned on Top`), and Dock back button (`⤵ Dock`).
+  - Context-sensitive mini controls inside the popout window: start/pause/reset for Timer, start/pause/lap for Stopwatch, arc toggles for Clock, and status info for Shift.
+  - 1-click center display swapping directly inside the popout window (Time ⇄ Time Left ⇄ %).
+  - Top navigation launch button (`#btn-popout`), settings dialog launcher, and global keyboard shortcut <kbd>P</kbd> to pop out and dock the floating clock.
+
 ## [0.3.0] - 2026-09-25
 
 ### Added

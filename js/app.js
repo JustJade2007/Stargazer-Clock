@@ -88,6 +88,14 @@
     tickClock();
 
     // Switch to initial mode
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('popout') === 'true') {
+      elements.body.classList.add('popout-mode');
+      const paramMode = urlParams.get('mode');
+      if (paramMode) {
+        state.settings.activeMode = paramMode;
+      }
+    }
     setMode(state.settings.activeMode || 'clock');
   }
 
@@ -105,6 +113,8 @@
     elements.btnFullscreen = document.getElementById('btn-fullscreen');
     elements.btnSoundToggle = document.getElementById('btn-sound-toggle');
     elements.soundIcon = document.getElementById('sound-icon');
+    elements.btnPopout = document.getElementById('btn-popout');
+    elements.btnSettingsPopout = document.getElementById('btn-settings-popout');
     elements.cookieStatusBadge = document.getElementById('cookie-status-badge');
     elements.footerCelestialStatus = document.getElementById('footer-celestial-status');
 
@@ -610,6 +620,27 @@
     }
 
     updateEphemerisPreview();
+
+    // Update Pop Out window if open
+    if (window.StargazerPopout && window.StargazerPopout.isPopoutOpen()) {
+      window.StargazerPopout.tick(state, {
+        dialClock,
+        dialShift,
+        dialTimer,
+        dialStopwatch,
+        clockModeLabel: elements.clockModeLabel,
+        clockDigitalTime: elements.clockDigitalTime,
+        clockArcLabel: elements.clockArcLabel,
+        shiftNameLabel: elements.shiftNameLabel,
+        shiftPercent: elements.shiftPercent,
+        shiftRemaining: elements.shiftRemaining,
+        timerTitleBadge: elements.timerTitleBadge,
+        timerDisplay: elements.timerDisplay,
+        timerSubText: elements.timerSubText,
+        stopwatchDisplay: elements.stopwatchDisplay,
+        stopwatchLapCount: elements.stopwatchLapCount
+      });
+    }
   }
 
   /**
@@ -1376,6 +1407,25 @@
     // Fullscreen Toggle
     elements.btnFullscreen.addEventListener('click', toggleFullscreen);
 
+    // Pop Out Window Button in Nav
+    if (elements.btnPopout) {
+      elements.btnPopout.addEventListener('click', () => {
+        if (window.StargazerPopout) {
+          window.StargazerPopout.toggle();
+        }
+      });
+    }
+
+    // Pop Out Launch Button in Settings
+    if (elements.btnSettingsPopout) {
+      elements.btnSettingsPopout.addEventListener('click', () => {
+        if (elements.settingsDialog) elements.settingsDialog.close();
+        if (window.StargazerPopout) {
+          window.StargazerPopout.open();
+        }
+      });
+    }
+
     // Settings Modal
     elements.btnSettings.addEventListener('click', () => {
       updateEphemerisPreview();
@@ -1527,6 +1577,13 @@
         else if (state.activeMode === 'timer') cycleTimerCenterDisplay();
       }
 
+      // 'P': Pop out / dock clock window (Always on Top)
+      if (e.code === 'KeyP') {
+        if (window.StargazerPopout) {
+          window.StargazerPopout.toggle();
+        }
+      }
+
       if (e.key === '1') setMode('clock');
       if (e.key === '2') setMode('shift');
       if (e.key === '3') setMode('timer');
@@ -1534,6 +1591,29 @@
       if (e.key === '5') setMode('combined');
     });
   }
+
+  // Global Orchestrator Bridge for Popout and External Controls
+  window.StargazerApp = {
+    getActiveMode: () => state.activeMode,
+    setMode: (m) => setMode(m),
+    cycleClockCenter: () => cycleClockCenterDisplay(),
+    cycleShiftCenter: () => cycleShiftCenterDisplay(),
+    cycleTimerCenter: () => cycleTimerCenterDisplay(),
+    setClockArc: (arc) => {
+      state.clockArcMode = arc;
+      state.settings.clockArc = arc;
+      window.StargazerStorage.set('clockArc', arc);
+      updateClockArcButtons();
+      tickClock();
+    },
+    toggleTimer: () => toggleTimer(),
+    resetTimer: () => resetTimer(),
+    isTimerRunning: () => state.timer.isRunning,
+    toggleStopwatch: () => toggleStopwatch(),
+    resetStopwatch: () => resetStopwatch(),
+    recordLap: () => recordLap(),
+    isStopwatchRunning: () => state.stopwatch.isRunning
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
