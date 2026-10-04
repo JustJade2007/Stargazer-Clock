@@ -22,6 +22,8 @@
     customUtcOffset: 0,
     moonPhaseOverride: null, // null = auto ephemeris, 0.0 - 1.0 = manual
     dayNightOverride: 'auto', // 'auto', 'day', 'night'
+    weatherOverride: 'auto', // 'auto', 'clear', 'clouds', 'rain', 'snow', 'thunder', 'fog'
+    temperatureOverride: null, // null = auto live weather, number = simulated °C
     isHudVisible: false
   };
 
@@ -54,6 +56,8 @@
         state.customUtcOffset = Number(savedSettings.customUtcOffset) || 0;
         state.moonPhaseOverride = savedSettings.moonPhaseOverride !== undefined ? savedSettings.moonPhaseOverride : null;
         state.dayNightOverride = savedSettings.dayNightOverride || 'auto';
+        state.weatherOverride = savedSettings.weatherOverride || 'auto';
+        state.temperatureOverride = savedSettings.temperatureOverride !== undefined ? savedSettings.temperatureOverride : null;
         
         if (savedSettings.simulatedDateTime) {
           const parsed = new Date(savedSettings.simulatedDateTime).getTime();
@@ -143,6 +147,57 @@
     getDayNightOverride() {
       if (!state.enabled) return 'auto';
       return state.dayNightOverride;
+    },
+
+    /**
+     * Weather Override Getter & Setter
+     */
+    getWeatherOverride() {
+      if (!state.enabled) return 'auto';
+      return state.weatherOverride;
+    },
+
+    setWeatherOverride(category) {
+      state.weatherOverride = category || 'auto';
+      if (category && category !== 'auto') {
+        state.enabled = true;
+        this.showDebugBanner(true);
+      }
+      this.saveState();
+      this.updateHudUi();
+      this.notifyAtmosphereChange();
+    },
+
+    /**
+     * Temperature Override Getter & Setter (°C)
+     */
+    getTemperatureOverride() {
+      if (!state.enabled) return null;
+      return state.temperatureOverride;
+    },
+
+    setTemperatureOverride(tempC) {
+      if (tempC === null || tempC === 'auto') {
+        state.temperatureOverride = null;
+      } else {
+        state.temperatureOverride = Number(tempC);
+        state.enabled = true;
+        this.showDebugBanner(true);
+      }
+      this.saveState();
+      this.updateHudUi();
+      this.notifyAtmosphereChange();
+    },
+
+    notifyAtmosphereChange() {
+      try {
+        if (window.StargazerWeather) {
+          const active = window.StargazerWeather.getActiveWeather();
+          window.dispatchEvent(new CustomEvent('stargazer:weather-update', { detail: active }));
+        }
+      } catch (e) {
+        // Safe dispatch
+      }
     },
 
     /**
@@ -274,12 +329,16 @@
       state.customUtcOffset = 0;
       state.moonPhaseOverride = null;
       state.dayNightOverride = 'auto';
+      state.weatherOverride = 'auto';
+      state.temperatureOverride = null;
       state.simulatedEpochMs = Date.now();
       state.lastRealMs = performance.now();
 
       this.showDebugBanner(false);
       this.saveState();
       this.updateHudUi();
+      this.notifyAtmosphereChange();
+    },
     },
 
     /**
@@ -295,7 +354,9 @@
           timezone: state.timezone,
           customUtcOffset: state.customUtcOffset,
           moonPhaseOverride: state.moonPhaseOverride,
-          dayNightOverride: state.dayNightOverride
+          dayNightOverride: state.dayNightOverride,
+          weatherOverride: state.weatherOverride,
+          temperatureOverride: state.temperatureOverride
         });
       }
     },
@@ -452,6 +513,34 @@
               <button type="button" class="debug-seg-btn" data-daynight="night">🌙 Force Moon</button>
             </div>
           </div>
+
+          <!-- Weather & Atmosphere Simulation -->
+          <div class="debug-hud-section">
+            <div class="debug-hud-label">
+              <span>Weather Backdrop Simulation</span>
+            </div>
+            <div class="debug-moon-chips">
+              <button type="button" class="debug-weather-chip active" data-weather="auto" title="Live Weather">🔄 Live</button>
+              <button type="button" class="debug-weather-chip" data-weather="clear" title="Clear Sky">☀️ Clear</button>
+              <button type="button" class="debug-weather-chip" data-weather="clouds" title="Clouds / Overcast">☁️ Clouds</button>
+              <button type="button" class="debug-weather-chip" data-weather="rain" title="Rain Streaks">🌧️ Rain</button>
+              <button type="button" class="debug-weather-chip" data-weather="snow" title="Drifting Snow">❄️ Snow</button>
+              <button type="button" class="debug-weather-chip" data-weather="thunder" title="Thunderstorm">⛈️ Thunder</button>
+              <button type="button" class="debug-weather-chip" data-weather="fog" title="Atmospheric Fog">🌫️ Fog</button>
+            </div>
+          </div>
+
+          <!-- Temperature Simulation -->
+          <div class="debug-hud-section">
+            <div class="debug-hud-label">
+              <span>Simulated Temperature</span>
+              <span class="debug-value-text" id="debug-temp-text">Auto (Live)</span>
+            </div>
+            <div class="debug-slider-row">
+              <input type="range" id="debug-temp-slider" min="-20" max="45" value="20" class="debug-slider">
+              <button type="button" class="debug-btn-sm" id="debug-btn-temp-auto">Reset</button>
+            </div>
+          </div>
         </div>
       `;
 
@@ -556,6 +645,30 @@
           this.setDayNightOverride(btn.dataset.daynight);
         });
       });
+
+      // Weather Chips
+      const weatherChips = hud.querySelectorAll('[data-weather]');
+      weatherChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          weatherChips.forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          this.setWeatherOverride(chip.dataset.weather);
+        });
+      });
+
+      // Temperature Slider & Reset
+      const tempSlider = hud.querySelector('#debug-temp-slider');
+      const tempResetBtn = hud.querySelector('#debug-btn-temp-auto');
+      if (tempSlider) {
+        tempSlider.addEventListener('input', () => {
+          this.setTemperatureOverride(Number(tempSlider.value));
+        });
+      }
+      if (tempResetBtn) {
+        tempResetBtn.addEventListener('click', () => {
+          this.setTemperatureOverride(null);
+        });
+      }
     },
 
     /**
@@ -602,6 +715,24 @@
       dnButtons.forEach(b => {
         b.classList.toggle('active', b.dataset.daynight === state.dayNightOverride);
       });
+
+      // Update Weather chips
+      const weatherChips = hud.querySelectorAll('[data-weather]');
+      weatherChips.forEach(c => {
+        c.classList.toggle('active', c.dataset.weather === state.weatherOverride);
+      });
+
+      // Update Temperature text and slider
+      const tempText = hud.querySelector('#debug-temp-text');
+      const tempSlider = hud.querySelector('#debug-temp-slider');
+      if (state.temperatureOverride !== null && state.temperatureOverride !== undefined) {
+        const c = state.temperatureOverride;
+        const f = Math.round((c * 9 / 5) + 32);
+        if (tempText) tempText.textContent = `Manual: ${c}°C / ${f}°F`;
+        if (tempSlider) tempSlider.value = c;
+      } else {
+        if (tempText) tempText.textContent = 'Auto (Live Weather)';
+      }
     }
   };
 

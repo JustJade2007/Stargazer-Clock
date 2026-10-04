@@ -72,7 +72,33 @@
   }
 
   /**
-   * Day/Night Detector (with Debug Override Support)
+   * Calculates Solar Ephemeris times based on active location
+   */
+  function getSolarTimes(date = (window.StargazerTime ? window.StargazerTime.now() : new Date())) {
+    let lat = null;
+    let lon = null;
+    if (window.StargazerWeather) {
+      const state = window.StargazerWeather.getState();
+      if (state.locationEnabled && state.latitude !== null && state.longitude !== null) {
+        lat = state.latitude;
+        lon = state.longitude;
+      }
+    }
+    if (window.StargazerEphemeris) {
+      return window.StargazerEphemeris.calculateSolarTimes(date, lat, lon);
+    }
+    const hours = date.getHours() + (date.getMinutes() / 60);
+    return {
+      isDaytime: hours >= 6.0 && hours < 18.0,
+      sunrise: null,
+      sunset: null,
+      isTwilight: false,
+      twilightFactor: 0
+    };
+  }
+
+  /**
+   * Day/Night Detector (with Ephemeris & Debug Override Support)
    */
   function isDaytime(date = (window.StargazerTime ? window.StargazerTime.now() : new Date())) {
     if (window.StargazerDebug) {
@@ -80,8 +106,7 @@
       if (dn === 'day') return true;
       if (dn === 'night') return false;
     }
-    const hours = date.getHours() + (date.getMinutes() / 60);
-    return hours >= 6.0 && hours < 18.0;
+    return getSolarTimes(date).isDaytime;
   }
 
   class SemicircleDial {
@@ -181,11 +206,13 @@
 
     getAstronomicalInfo(date = this.currentDate) {
       const moon = calculateMoonPhase(date);
+      const solar = getSolarTimes(date);
       const isDay = isDaytime(date);
       return {
         isDaytime: isDay,
         activeCelestial: isDay ? 'Sun' : 'Moon',
-        moon
+        moon,
+        solar
       };
     }
 
@@ -499,6 +526,7 @@
   window.SemicircleDial = SemicircleDial;
   window.StargazerMoon = {
     calculateMoonPhase,
-    isDaytime
+    isDaytime,
+    getSolarTimes
   };
 })(window);

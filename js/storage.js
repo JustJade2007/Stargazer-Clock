@@ -42,6 +42,17 @@
     centerDisplayMode: 'time', // 'time', 'remaining', 'percent'
     popoutViewMode: 'dial', // 'dial' (semicircle + text) or 'text' (text only)
     pointerMode: 'auto', // 'auto', 'sun', 'moon', 'orb'
+    locationSettings: {
+      locationEnabled: false,
+      latitude: null,
+      longitude: null,
+      cityName: 'Location Not Set',
+      country: '',
+      source: 'none'
+    },
+    weatherBackdropEnabled: true,
+    temperatureUnit: 'auto', // 'auto', 'C', 'F'
+    promptLocationDismissed: false,
     debugSettings: {
       enabled: false,
       isSimulatedTime: false,
@@ -50,7 +61,9 @@
       timezone: 'auto',
       customUtcOffset: 0,
       moonPhaseOverride: null, // null (auto) or 0.0 to 1.0
-      dayNightOverride: 'auto' // 'auto', 'day', 'night'
+      dayNightOverride: 'auto', // 'auto', 'day', 'night'
+      weatherOverride: 'auto', // 'auto', 'clear', 'clouds', 'rain', 'snow', 'thunder', 'fog'
+      temperatureOverride: null // null (auto) or number in °C
     }
   };
 
