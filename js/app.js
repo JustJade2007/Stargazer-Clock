@@ -245,6 +245,24 @@
     elements.btnOpenDebugHud = document.getElementById('btn-open-debug-hud');
     elements.btnResetDebugSim = document.getElementById('btn-reset-debug-sim');
     elements.settingDebugStatus = document.getElementById('setting-debug-status');
+
+    // Weather & Location Elements
+    elements.navWeatherBadge = document.getElementById('nav-weather-badge');
+    elements.navWeatherIcon = document.getElementById('nav-weather-icon');
+    elements.navWeatherTemp = document.getElementById('nav-weather-temp');
+    elements.navWeatherCity = document.getElementById('nav-weather-city');
+    elements.locationConsentCard = document.getElementById('location-consent-card');
+    elements.btnConsentAllow = document.getElementById('btn-consent-allow');
+    elements.btnConsentCity = document.getElementById('btn-consent-city');
+    elements.btnConsentDismiss = document.getElementById('btn-consent-dismiss');
+    elements.settingLocationStatus = document.getElementById('setting-location-status');
+    elements.btnSettingDetectLoc = document.getElementById('btn-setting-detect-loc');
+    elements.settingCitySearch = document.getElementById('setting-city-search');
+    elements.settingCityResults = document.getElementById('setting-city-results');
+    elements.settingQuickCities = document.getElementById('setting-quick-cities');
+    elements.settingTempUnit = document.getElementById('setting-temp-unit');
+    elements.settingWeatherBackdrop = document.getElementById('setting-weather-backdrop');
+    elements.settingSolarTimesPreview = document.getElementById('setting-solar-times-preview');
   }
 
   /**
@@ -322,7 +340,32 @@
     elements.settingShowDate.checked = state.settings.showDate;
     elements.settingSoundEnabled.checked = state.settings.soundEnabled;
     elements.settingSoundVolume.value = state.settings.soundVolume;
+
+    // Initialize Weather & Location
+    if (window.StargazerWeather) {
+      window.StargazerWeather.init(state.settings);
+    }
+
+    // Populate Weather / Location UI in Settings
+    if (elements.settingTempUnit) {
+      elements.settingTempUnit.value = state.settings.temperatureUnit || 'auto';
+    }
+    if (elements.settingWeatherBackdrop) {
+      elements.settingWeatherBackdrop.checked = state.settings.weatherBackdropEnabled !== false;
+    }
+
+    // In-App Consent Card display logic
+    const locSettings = state.settings.locationSettings || {};
+    if (elements.locationConsentCard) {
+      if (!locSettings.locationEnabled && !state.settings.promptLocationDismissed) {
+        elements.locationConsentCard.classList.remove('hidden');
+      } else {
+        elements.locationConsentCard.classList.add('hidden');
+      }
+    }
+
     updateSoundButton();
+    updateWeatherDisplay();
     updateEphemerisPreview();
   }
 
@@ -372,6 +415,7 @@
     starfield.setDensity(state.settings.starDensity);
     starfield.setMeteors(state.settings.shootingStars);
     starfield.setParallax(state.settings.mouseParallax);
+    starfield.setWeatherBackdropEnabled(state.settings.weatherBackdropEnabled !== false);
   }
 
   /**
@@ -507,12 +551,17 @@
   }
 
   /**
-   * Update Ephemeris (Sun & Moon phase preview)
+   * Update Ephemeris (Sun & Moon phase preview & Solar Times)
    */
   function updateEphemerisPreview() {
     const now = getNow();
     const moon = window.StargazerMoon.calculateMoonPhase(now);
     const isDay = window.StargazerMoon.isDaytime(now);
+    const solar = window.StargazerMoon.getSolarTimes ? window.StargazerMoon.getSolarTimes(now) : null;
+
+    if (starfield && solar) {
+      starfield.setTwilightFactor(solar.twilightFactor || 0);
+    }
 
     const mode = state.settings.pointerMode || 'auto';
     let celestialText = '';
@@ -537,6 +586,46 @@
     }
     if (elements.settingDaynightPreview) {
       elements.settingDaynightPreview.textContent = isDay ? '☀️ Daytime (Sun active)' : '🌙 Nighttime (Moon active)';
+    }
+    if (elements.settingSolarTimesPreview && solar) {
+      if (solar.sunrise && solar.sunset) {
+        const is24 = state.settings.timeFormat === '24';
+        const riseStr = window.StargazerEphemeris.formatSolarTime(solar.sunrise, is24);
+        const setStr = window.StargazerEphemeris.formatSolarTime(solar.sunset, is24);
+        elements.settingSolarTimesPreview.textContent = `🌅 Sunrise: ${riseStr}  •  🌇 Sunset: ${setStr}`;
+      } else {
+        elements.settingSolarTimesPreview.textContent = '🌅 06:00  •  🌇 18:00 (Standard)';
+      }
+    }
+  }
+
+  /**
+   * Update Weather & Temperature Display
+   */
+  function updateWeatherDisplay() {
+    if (!window.StargazerWeather) return;
+    const w = window.StargazerWeather.getActiveWeather();
+    const unit = state.settings.temperatureUnit || 'auto';
+    const activeUnit = unit === 'auto' ? window.StargazerWeather.getAutoTempUnit() : unit;
+    const tempVal = activeUnit === 'F' ? Math.round(w.temperatureF) : Math.round(w.temperatureC);
+    const tempStr = `${tempVal}°${activeUnit}`;
+
+    if (elements.navWeatherBadge) {
+      if (elements.navWeatherIcon) elements.navWeatherIcon.textContent = w.emoji || '☀️';
+      if (elements.navWeatherTemp) elements.navWeatherTemp.textContent = tempStr;
+      if (elements.navWeatherCity) elements.navWeatherCity.textContent = w.locationEnabled ? w.cityName : 'Location';
+    }
+
+    if (elements.settingLocationStatus) {
+      if (w.locationEnabled) {
+        elements.settingLocationStatus.textContent = `📍 ${w.cityName} • ${w.conditionText} (${tempStr})`;
+      } else {
+        elements.settingLocationStatus.textContent = 'Location Disabled / Not Set';
+      }
+    }
+
+    if (starfield) {
+      starfield.setWeather(w.category, w.temperatureC);
     }
   }
 
@@ -1565,6 +1654,155 @@
         }
       });
     }
+
+    // Weather & Location Event Listeners
+    if (elements.navWeatherBadge) {
+      elements.navWeatherBadge.addEventListener('click', () => {
+        if (elements.settingsDialog) elements.settingsDialog.showModal();
+        if (elements.settingCitySearch) elements.settingCitySearch.focus();
+      });
+    }
+
+    // Consent Banner Actions
+    if (elements.btnConsentAllow) {
+      elements.btnConsentAllow.addEventListener('click', async () => {
+        elements.btnConsentAllow.disabled = true;
+        elements.btnConsentAllow.textContent = 'Detecting...';
+        try {
+          await window.StargazerWeather.requestCurrentLocation();
+          if (elements.locationConsentCard) elements.locationConsentCard.classList.add('hidden');
+          state.settings.promptLocationDismissed = true;
+          window.StargazerStorage.set('promptLocationDismissed', true);
+        } catch (err) {
+          alert(err.message || 'Unable to detect location. You can select a city manually in Settings.');
+        } finally {
+          elements.btnConsentAllow.disabled = false;
+          elements.btnConsentAllow.textContent = 'Enable Location 📍';
+        }
+      });
+    }
+
+    if (elements.btnConsentCity) {
+      elements.btnConsentCity.addEventListener('click', () => {
+        if (elements.locationConsentCard) elements.locationConsentCard.classList.add('hidden');
+        state.settings.promptLocationDismissed = true;
+        window.StargazerStorage.set('promptLocationDismissed', true);
+        if (elements.settingsDialog) elements.settingsDialog.showModal();
+        if (elements.settingCitySearch) elements.settingCitySearch.focus();
+      });
+    }
+
+    if (elements.btnConsentDismiss) {
+      elements.btnConsentDismiss.addEventListener('click', () => {
+        if (elements.locationConsentCard) elements.locationConsentCard.classList.add('hidden');
+        state.settings.promptLocationDismissed = true;
+        window.StargazerStorage.set('promptLocationDismissed', true);
+      });
+    }
+
+    // Settings Detect Location Button
+    if (elements.btnSettingDetectLoc) {
+      elements.btnSettingDetectLoc.addEventListener('click', async () => {
+        elements.btnSettingDetectLoc.disabled = true;
+        elements.btnSettingDetectLoc.textContent = 'Detecting...';
+        try {
+          await window.StargazerWeather.requestCurrentLocation();
+          updateWeatherDisplay();
+          updateEphemerisPreview();
+        } catch (err) {
+          alert(err.message || 'Could not access location. Try picking a city below.');
+        } finally {
+          elements.btnSettingDetectLoc.disabled = false;
+          elements.btnSettingDetectLoc.textContent = 'Detect Location 📍';
+        }
+      });
+    }
+
+    // Settings City Search with Debounce
+    if (elements.settingCitySearch) {
+      let debounceTimer = null;
+      elements.settingCitySearch.addEventListener('input', (e) => {
+        const query = e.target.value;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+          if (!query || query.trim().length < 2) {
+            if (elements.settingCityResults) elements.settingCityResults.classList.add('hidden');
+            return;
+          }
+          const results = await window.StargazerWeather.searchCities(query);
+          if (elements.settingCityResults) {
+            elements.settingCityResults.innerHTML = '';
+            if (!results || results.length === 0) {
+              elements.settingCityResults.innerHTML = '<div class="city-search-item">No matching cities found</div>';
+            } else {
+              results.forEach(city => {
+                const item = document.createElement('div');
+                item.className = 'city-search-item';
+                item.innerHTML = `<span>${city.name}</span><span class="city-search-country">${city.country || ''}</span>`;
+                item.addEventListener('click', async () => {
+                  await window.StargazerWeather.setLocation(city.lat, city.lon, city.name, city.country, 'search');
+                  elements.settingCityResults.classList.add('hidden');
+                  elements.settingCitySearch.value = city.name;
+                  updateWeatherDisplay();
+                  updateEphemerisPreview();
+                });
+                elements.settingCityResults.appendChild(item);
+              });
+            }
+            elements.settingCityResults.classList.remove('hidden');
+          }
+        }, 320);
+      });
+
+      // Close dropdown if clicked outside
+      document.addEventListener('click', (e) => {
+        if (!elements.settingCitySearch.contains(e.target) && elements.settingCityResults && !elements.settingCityResults.contains(e.target)) {
+          elements.settingCityResults.classList.add('hidden');
+        }
+      });
+    }
+
+    // Quick City Pills
+    if (elements.settingQuickCities) {
+      elements.settingQuickCities.querySelectorAll('.city-pill').forEach(pill => {
+        pill.addEventListener('click', async () => {
+          const cityName = pill.dataset.city;
+          const found = window.StargazerWeather.PRESET_CITIES.find(c => c.name === cityName);
+          if (found) {
+            await window.StargazerWeather.setLocation(found.lat, found.lon, found.name, found.country, 'preset');
+            if (elements.settingCitySearch) elements.settingCitySearch.value = found.name;
+            updateWeatherDisplay();
+            updateEphemerisPreview();
+          }
+        });
+      });
+    }
+
+    // Temperature Unit Change
+    if (elements.settingTempUnit) {
+      elements.settingTempUnit.addEventListener('change', () => {
+        state.settings.temperatureUnit = elements.settingTempUnit.value;
+        window.StargazerStorage.set('temperatureUnit', state.settings.temperatureUnit);
+        updateWeatherDisplay();
+      });
+    }
+
+    // Weather Backdrop Toggle
+    if (elements.settingWeatherBackdrop) {
+      elements.settingWeatherBackdrop.addEventListener('change', () => {
+        state.settings.weatherBackdropEnabled = elements.settingWeatherBackdrop.checked;
+        window.StargazerStorage.set('weatherBackdropEnabled', state.settings.weatherBackdropEnabled);
+        if (starfield) {
+          starfield.setWeatherBackdropEnabled(state.settings.weatherBackdropEnabled);
+        }
+      });
+    }
+
+    // Global Weather Update Listener
+    window.addEventListener('stargazer:weather-update', () => {
+      updateWeatherDisplay();
+      updateEphemerisPreview();
+    });
   }
 
   /**
@@ -1587,6 +1825,12 @@
     state.settings.showDate = elements.settingShowDate.checked;
     state.settings.soundEnabled = elements.settingSoundEnabled.checked;
     state.settings.soundVolume = Number(elements.settingSoundVolume.value);
+    if (elements.settingTempUnit) {
+      state.settings.temperatureUnit = elements.settingTempUnit.value;
+    }
+    if (elements.settingWeatherBackdrop) {
+      state.settings.weatherBackdropEnabled = elements.settingWeatherBackdrop.checked;
+    }
 
     window.StargazerStorage.saveSettings(state.settings);
 
@@ -1594,8 +1838,11 @@
       starfield.setDensity(state.settings.starDensity);
       starfield.setMeteors(state.settings.shootingStars);
       starfield.setParallax(state.settings.mouseParallax);
+      starfield.setWeatherBackdropEnabled(state.settings.weatherBackdropEnabled !== false);
     }
     updateSoundButton();
+    updateWeatherDisplay();
+    updateEphemerisPreview();
     tickClock();
   }
 

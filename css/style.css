@@ -1698,5 +1698,249 @@ body.popout-mode.mode-text-only .dial-digital-time {
   box-shadow: 0 0 8px var(--primary-glow);
 }
 
+/* ==========================================================================
+   Weather & Location Components
+   ========================================================================== */
+
+/* Top Nav Weather Chip */
+.nav-weather-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(14, 18, 38, 0.65);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 4px 12px;
+  color: var(--text-main);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.nav-weather-chip:hover {
+  border-color: var(--card-border-glow);
+  box-shadow: 0 0 12px var(--primary-glow);
+  transform: translateY(-1px);
+}
+
+.weather-chip-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.weather-chip-temp {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.weather-chip-city {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  max-width: 95px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Floating Location Consent Banner */
+.location-consent-banner {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99;
+  max-width: 620px;
+  width: calc(100% - 32px);
+  background: rgba(12, 16, 36, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--card-border-glow);
+  border-radius: 14px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px var(--primary-glow);
+  animation: consentSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.location-consent-banner.hidden {
+  display: none !important;
+}
+
+@keyframes consentSlideDown {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.consent-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.consent-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.consent-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.consent-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.consent-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Settings City Search & Selector */
+.city-search-container {
+  position: relative;
+  width: 100%;
+  max-width: 260px;
+}
+
+.city-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: rgba(14, 18, 38, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border-glow);
+  border-radius: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.city-search-results.hidden {
+  display: none !important;
+}
+
+.city-search-item {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background var(--transition-fast);
+}
+
+.city-search-item:last-child {
+  border-bottom: none;
+}
+
+.city-search-item:hover {
+  background: var(--primary-color-dim);
+  color: var(--primary-color);
+}
+
+.city-search-country {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.city-quick-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.city-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.city-pill:hover, .city-pill.active {
+  background: var(--primary-color-dim);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.btn-xs {
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  border-radius: 4px;
+}
+
+.settings-col-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Debug HUD Weather & Temperature Controls */
+.debug-weather-chip {
+  flex: 1 1 calc(25% - 4px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  padding: 4px 6px;
+  font-size: 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.debug-weather-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+.debug-weather-chip.active {
+  background: var(--primary-color-dim);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  font-weight: 600;
+  box-shadow: 0 0 6px var(--primary-glow);
+}
+
+@media (max-width: 680px) {
+  .location-consent-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    top: 60px;
+  }
+  .consent-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .weather-chip-city {
+    display: none;
+  }
+}
+
+
 
 

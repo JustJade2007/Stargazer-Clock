@@ -34,19 +34,27 @@ Whether run directly in your browser, hosted as a local service, or launched as 
 - **Precision Stopwatch:** Fast elapsed-time counter with lap/split support for tracking focused intervals or activities.
 - **Combined View:** Simultaneous display mode presenting the clock, active timers, and stopwatch within a harmonious dashboard layout.
 
-### 🛠️ 3. Debug & Time Warp Simulation Engine
+### ☀️ 3. Location, Solar Ephemeris & Dynamic Weather
+- **Astronomical Solar Transitions:** High-precision NOAA solar calculations calculate exact local sunrise, sunset, and solar noon based on user location.
+- **Dynamic Celestial Pointer:** Smooth transitions between Sun ☀️ and Moon 🌙 states at sunrise and sunset, including a ~30-minute twilight/golden-hour horizon glow.
+- **Dynamic Weather Backdrop:** Animated weather particle engine rendering raindrops with splash ripples, fluttering snowflakes, rolling misty clouds, and celestial thunderstorm lightning flashes.
+- **Atmospheric Temperature Tinting:** The deep cosmos wash subtly shifts hues based on real-time temperature (icy glacial cyan for cold, deep indigo for mild, and warm solar amber for heat).
+- **Privacy-First Permission Workflow:** Transparent in-app consent banner, geolocation API access with offline major cities database and Open-Meteo geocoding search.
+
+### 🛠️ 4. Debug & Time Warp Simulation Engine
 - **Manual Time & Date Overrides:** Test any time of day, calendar date, or hour with immediate synchronized updates across all radial dials and sub-displays.
 - **Time Acceleration Multipliers:** Warp through time at `0x` (freeze), `1x` (realtime), `10x`, `60x` (1 minute/sec), or `1440x` (1 day/min) to preview dial sweeps and day/night transitions effortlessly.
+- **Atmosphere & Weather Simulation:** Debug HUD allows instant simulation of Clear, Cloudy, Rain, Snow, Thunderstorm, or Fog conditions alongside custom simulated temperature sliders (`-20°C` to `45°C`).
 - **Global Timezone Converter:** Instantly switch between local system time, UTC, NY, LA, London, Paris, Tokyo, Shanghai, India, Sydney, or custom UTC offsets.
 - **Lunar Phase Simulator:** Dial in any moon phase from 0% (New) to 50% (Full) to 100% or click presets to inspect moon shadows and illumination fractions.
 - **Celestial Pointer Force Mode:** Manually force the dial indicator to Sun ☀️, Moon 🌙, or auto day/night tracking.
 - **Interactive Glassmorphic HUD:** Quick toggle via <kbd>D</kbd> or top nav 🛠️ button with persistent floating simulation banner and one-click reset.
 
-### 🍪 4. Client-Side Persistence
-- **Cookie & Local Storage Retention:** Preserves chosen theme accents, display preferences, shift schedules, and custom timer setups locally across launches with zero login required.
+### 🍪 5. Client-Side Persistence
+- **Cookie & Local Storage Retention:** Preserves chosen theme accents, display preferences, shift schedules, custom timer setups, and location settings locally across launches with zero login required.
 - **Privacy-First:** Operates 100% client-side with no tracking, telemetry, or remote server dependencies.
 
-### 🚀 5. Deployment & Packaging
+### 🚀 6. Deployment & Packaging
 - **GitHub Pages:** Instant, one-click access directly in the web browser without any local installation.
 - **Local Web App:** Lightweight web application that can be run on any local development server.
 - **Desktop Executable:** Packaged as a standalone Windows executable (`.exe`) optimized to run as a borderless or floating ambient widget.
