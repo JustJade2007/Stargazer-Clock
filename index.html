@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    if (window.location.search && window.location.search.indexOf('popout=true') !== -1) {
+      document.title = 'Stargazer Popout (Pinned)';
+    }
+  </script>
   <title>Stargazer Clock 🌌 | Semicircle Clock & Celestial Tracker</title>
   <meta name="description" content="A customizable semicircle clock, shift timeframe tracker, countdown timer, and stopwatch with an ambient starry cosmic backdrop.">
   <meta name="theme-color" content="#090a16">

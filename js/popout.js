@@ -113,6 +113,13 @@
           this.handlePipClosed();
         });
 
+        // Handle blur to maintain topmost priority when user clicks outside
+        pipWin.addEventListener('blur', () => {
+          if (state.isPinned) {
+            this.callPinApi(true);
+          }
+        });
+
         // Update main window button
         this.updateMainUiButton(true);
 
@@ -151,6 +158,13 @@
           popup.document.title = 'Stargazer Popout (Pinned)';
           popup.focus();
         } catch (e) {}
+
+        popup.addEventListener('blur', () => {
+          if (state.isPinned) {
+            this.callPinApi(true);
+          }
+        });
+
         this.updateMainUiButton(true);
         this.callPinApi(true);
       } else {
@@ -731,8 +745,20 @@
     callPinApi(pinState) {
       try {
         const s = pinState ? 1 : 0;
-        // Strictly target the Popout window and never the main application window
-        fetch(`/api/pin?state=${s}&title=Popout`, { method: 'GET' }).catch(() => {});
+        let w = 270;
+        let h = 230;
+        if (state.pipWindow && !state.pipWindow.closed) {
+          w = state.pipWindow.outerWidth || 270;
+          h = state.pipWindow.outerHeight || 230;
+        }
+        const send = () => {
+          fetch(`/api/pin?state=${s}&title=Popout&w=${w}&h=${h}`, { method: 'GET' }).catch(() => {});
+        };
+        send();
+        if (pinState) {
+          setTimeout(send, 200);
+          setTimeout(send, 600);
+        }
       } catch (e) {}
     },
 

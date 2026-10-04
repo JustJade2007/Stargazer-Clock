@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2026-10-04
+
+### Fixed
+- **Persistent Always-on-Top Pinning Across External Focus Changes (`desktop_launcher.py`, `js/popout.js`, `js/app.js`, `index.html`)**:
+  - Fixed an issue where the popout window was pushed to the background whenever an external application (e.g. editor, browser, explorer) took focus.
+  - Added physical dimension-aware window discrimination (`is_popout_window()` vs `is_main_window()`) checking geometry (`w < 550 && h < 500`) alongside title keywords (`popout`, `picture-in-picture`, `pip`), eliminating false positives where `unpin_main_windows()` inadvertently demoted the popout window.
+  - Set `SWP_FRAMECHANGED` and continuous `SWP_NOACTIVATE` Z-order maintenance in the background daemon (every 300ms) to maintain topmost position over external windows without stealing keyboard/mouse focus from the user.
+  - Bound `blur` and `focus` event listeners inside the popout window (both Document PiP and popup fallback) to pulse `/api/pin` whenever the window loses focus.
+  - Added early inline title assignment in `index.html` to guarantee the popout title `Stargazer Popout (Pinned)` is active immediately before any DOM or stylesheet parsing occurs.
+  - Expanded browser detection to locate Microsoft EdgeCore (Windows on ARM / WebView), Samsung Internet, Brave, and Opera via Windows Registry `App Paths` and directory discovery.
+
 ## [0.7.1] - 2026-09-25
 
 ### Fixed

@@ -99,6 +99,18 @@
       if (urlParams.get('view') === 'text') {
         elements.body.classList.add('mode-text-only');
       }
+
+      // Reinforce OS-level topmost pinning for the standalone popout window
+      const reinforcePin = () => {
+        try {
+          fetch('/api/pin?state=1&title=Popout', { method: 'GET' }).catch(() => {});
+        } catch (e) {}
+      };
+      reinforcePin();
+      setTimeout(reinforcePin, 200);
+      setTimeout(reinforcePin, 600);
+      window.addEventListener('blur', reinforcePin);
+      window.addEventListener('focus', reinforcePin);
     }
     setMode(state.settings.activeMode || 'clock');
   }

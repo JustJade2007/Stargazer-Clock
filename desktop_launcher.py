@@ -1,7 +1,8 @@
 """
 Stargazer Clock - Desktop Application Launcher
 Serves local web assets and opens a dedicated, chromeless application window
-via Microsoft Edge App Mode or the default system browser.
+via Microsoft Edge App Mode, Google Chrome, or other Chromium browsers,
+with native OS-level Always-on-Top pinning for the compact popout clock.
 """
 
 import sys
@@ -26,9 +27,10 @@ def find_free_port():
         s.bind(('127.0.0.1', 0))
         return s.getsockname()[1]
 
-# Global set of HWNDs to keep pinned topmost
+# State tracking for pinned popout window
 PINNED_HWNDS = set()
 PIN_LOCK = threading.Lock()
+GLOBAL_PIN_ACTIVE = False
 
 if sys.platform == 'win32':
     import ctypes
@@ -77,6 +79,7 @@ if sys.platform == 'win32':
     SWP_NOSIZE = 0x0001
     SWP_SHOWWINDOW = 0x0040
     SWP_NOACTIVATE = 0x0010
+    SWP_FRAMECHANGED = 0x0020
 
     user32.SetForegroundWindow.argtypes = [wintypes.HWND]
     user32.SetForegroundWindow.restype = wintypes.BOOL
@@ -93,18 +96,78 @@ if sys.platform == 'win32':
             pass
         return ""
 
-    def find_windows_matching(include_str, exclude_str=None):
-        """Finds all visible top-level windows matching include_str and not containing exclude_str."""
+    def get_window_rect(hwnd):
+        """Retrieves window dimensions (left, top, width, height) safely."""
+        try:
+            rect = wintypes.RECT()
+            if user32.GetWindowRect(hwnd, ctypes.byref(rect)):
+                return rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top
+        except Exception:
+            pass
+        return 0, 0, 0, 0
+
+    def is_popout_window(hwnd):
+        """Determines if the given HWND is the compact popout clock window."""
+        try:
+            if not user32.IsWindow(hwnd) or not user32.IsWindowVisible(hwnd):
+                return False
+            title = get_window_title(hwnd).lower()
+            _, _, w, h = get_window_rect(hwnd)
+            if w <= 0 or h <= 0:
+                return False
+
+            # Explicit popout / picture-in-picture indicator in title
+            is_popout_title = any(k in title for k in ['popout', 'picture in picture', 'picture-in-picture', 'pictureinpicture', 'pip'])
+            if is_popout_title:
+                return True
+
+            # Compact size check: Popout window is ~270x230 or 270x135 (< 550x500)
+            is_compact = (w < 550) and (h < 500)
+            is_stargazer = 'stargazer' in title or 'clock' in title
+            if is_compact and is_stargazer:
+                return True
+
+            return False
+        except Exception:
+            return False
+
+    def is_main_window(hwnd):
+        """Determines if the given HWND is the primary application dashboard window."""
+        try:
+            if not user32.IsWindow(hwnd) or not user32.IsWindowVisible(hwnd):
+                return False
+            if is_popout_window(hwnd):
+                return False
+            title = get_window_title(hwnd).lower()
+            _, _, w, h = get_window_rect(hwnd)
+            # Main window is large (>= 550 width or >= 500 height)
+            is_large = (w >= 550) or (h >= 500)
+            return ('stargazer' in title) and is_large
+        except Exception:
+            return False
+
+    def find_popout_windows():
+        """Finds all visible top-level windows matching the popout widget."""
         matched = []
         WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, ctypes.c_void_p)
 
         def callback(hwnd, lParam):
-            if user32.IsWindowVisible(hwnd):
-                title = get_window_title(hwnd)
-                if include_str.lower() in title.lower():
-                    if exclude_str and exclude_str.lower() in title.lower():
-                        return True
-                    matched.append(hwnd)
+            if is_popout_window(hwnd):
+                matched.append(hwnd)
+            return True
+
+        proc = WNDENUMPROC(callback)
+        user32.EnumWindows(proc, 0)
+        return matched
+
+    def find_main_windows():
+        """Finds all visible top-level windows matching the main app."""
+        matched = []
+        WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, ctypes.c_void_p)
+
+        def callback(hwnd, lParam):
+            if is_main_window(hwnd):
+                matched.append(hwnd)
             return True
 
         proc = WNDENUMPROC(callback)
@@ -123,7 +186,7 @@ if sys.platform == 'win32':
                     hwnd,
                     HWND_TOPMOST,
                     0, 0, 0, 0,
-                    SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_FRAMECHANGED
                 )
             else:
                 set_win_long(hwnd, GWL_EXSTYLE, curr_ex & ~WS_EX_TOPMOST)
@@ -131,7 +194,7 @@ if sys.platform == 'win32':
                     hwnd,
                     HWND_NOTOPMOST,
                     0, 0, 0, 0,
-                    SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_FRAMECHANGED
                 )
             return True
         except Exception:
@@ -140,7 +203,7 @@ if sys.platform == 'win32':
     def unpin_main_windows():
         """Ensures the main application window is NEVER topmost, preventing it from covering the popout."""
         try:
-            main_hwnds = find_windows_matching('Stargazer', exclude_str='Popout')
+            main_hwnds = find_main_windows()
             for h in main_hwnds:
                 apply_window_pin(h, False)
                 with PIN_LOCK:
@@ -149,32 +212,44 @@ if sys.platform == 'win32':
             pass
 
     def pin_maintenance_worker():
-        """Background daemon ensuring only the popout is pinned without causing repaints/flickering."""
+        """Background daemon ensuring only the popout is pinned and stays topmost across focus changes."""
         while True:
             try:
-                time.sleep(2.0)
+                time.sleep(0.3)
                 # Keep main window strictly non-topmost
                 unpin_main_windows()
 
                 with PIN_LOCK:
                     dead = []
                     for hwnd in list(PINNED_HWNDS):
-                        if user32.IsWindow(hwnd):
-                            title = get_window_title(hwnd).lower()
-                            if 'popout' not in title:
-                                # Not a popout window! Unpin immediately.
+                        if user32.IsWindow(hwnd) and user32.IsWindowVisible(hwnd):
+                            if not is_popout_window(hwnd):
+                                # Not a popout window anymore! Unpin immediately.
                                 apply_window_pin(hwnd, False)
                                 dead.append(hwnd)
                                 continue
 
-                            # Only re-apply if WS_EX_TOPMOST was lost, preventing flickering from continuous SetWindowPos
-                            curr_ex = get_win_long(hwnd, GWL_EXSTYLE)
-                            if not (curr_ex & WS_EX_TOPMOST):
-                                apply_window_pin(hwnd, True)
+                            # Re-assert topmost position in Z-order without activating
+                            # This ensures that when the user focuses any other app (Explorer, VS Code, Browser, etc.)
+                            # the pinned popout window stays on top without being pushed behind!
+                            user32.SetWindowPos(
+                                hwnd,
+                                HWND_TOPMOST,
+                                0, 0, 0, 0,
+                                SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE
+                            )
                         else:
                             dead.append(hwnd)
                     for d in dead:
                         PINNED_HWNDS.discard(d)
+
+                    # If global pin state is active, actively discover and pin any popout window
+                    if GLOBAL_PIN_ACTIVE:
+                        popouts = find_popout_windows()
+                        for h in popouts:
+                            if h not in PINNED_HWNDS:
+                                apply_window_pin(h, True)
+                                PINNED_HWNDS.add(h)
             except Exception:
                 pass
 
@@ -187,39 +262,41 @@ class QuietHandler(SimpleHTTPRequestHandler):
         pass
 
     def do_GET(self):
+        global GLOBAL_PIN_ACTIVE
         if self.path.startswith('/api/pin'):
             try:
                 import urllib.parse
                 parsed = urllib.parse.urlparse(self.path)
                 params = urllib.parse.parse_qs(parsed.query)
                 pin_state = params.get('state', ['1'])[0] == '1'
+                GLOBAL_PIN_ACTIVE = pin_state
 
                 success = False
                 if sys.platform == 'win32':
-                    # Unpin main window immediately so it stays in normal layer
+                    # Ensure main window is unpinned
                     unpin_main_windows()
 
-                    def scan_and_apply():
-                        # Target strictly the popout window
-                        for _ in range(8):
-                            hwnds = find_windows_matching('Popout')
-                            if hwnds:
-                                with PIN_LOCK:
-                                    for h in hwnds:
-                                        apply_window_pin(h, pin_state)
-                                        if pin_state:
+                    if not pin_state:
+                        with PIN_LOCK:
+                            for h in list(PINNED_HWNDS):
+                                apply_window_pin(h, False)
+                            PINNED_HWNDS.clear()
+                        success = True
+                    else:
+                        def scan_and_apply():
+                            # Scan repeatedly for up to 3 seconds to catch newly spawned popout/PiP window
+                            for _ in range(30):
+                                hwnds = find_popout_windows()
+                                if hwnds:
+                                    with PIN_LOCK:
+                                        for h in hwnds:
+                                            apply_window_pin(h, True)
                                             PINNED_HWNDS.add(h)
-                                            try:
-                                                user32.SetForegroundWindow(h)
-                                            except Exception:
-                                                pass
-                                        else:
-                                            PINNED_HWNDS.discard(h)
-                                break
-                            time.sleep(0.12)
+                                    break
+                                time.sleep(0.1)
 
-                    threading.Thread(target=scan_and_apply, daemon=True).start()
-                    success = True
+                        threading.Thread(target=scan_and_apply, daemon=True).start()
+                        success = True
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
@@ -245,15 +322,53 @@ def start_server(base_dir, port):
     return server
 
 def find_browser_executable():
-    """Finds Microsoft Edge or Google Chrome executable paths on Windows."""
+    """Finds Microsoft Edge, Google Chrome, Brave, Samsung Internet, or Opera executable paths on Windows."""
     candidates = [
+        # Microsoft Edge (Standard)
         os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
         os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
         os.path.expandvars(r"%LocalAppData%\Microsoft\Edge\Application\msedge.exe"),
+        # Google Chrome
         os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
         os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
         os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
+        # Brave
+        os.path.expandvars(r"%ProgramFiles%\BraveSoftware\Brave-Browser\Application\brave.exe"),
+        os.path.expandvars(r"%LocalAppData%\BraveSoftware\Brave-Browser\Application\brave.exe"),
+        # Samsung Internet
+        os.path.expandvars(r"%ProgramFiles%\Samsung\Internet\Application\samsunginternet.exe"),
+        # Opera / Opera GX
+        os.path.expandvars(r"%LocalAppData%\Programs\Opera GX\opera.exe"),
+        os.path.expandvars(r"%LocalAppData%\Programs\Opera\opera.exe"),
     ]
+
+    # Check Microsoft EdgeCore (Windows on ARM, Edge WebView, or Canary/Dev builds)
+    edgecore_base = os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\EdgeCore")
+    if os.path.isdir(edgecore_base):
+        try:
+            for root, dirs, files in os.walk(edgecore_base):
+                if "msedge.exe" in files:
+                    candidates.insert(0, os.path.join(root, "msedge.exe"))
+                    break
+        except Exception:
+            pass
+
+    # Check Windows Registry App Paths
+    if sys.platform == 'win32':
+        try:
+            import winreg
+            for hive in [winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER]:
+                for app_name in ['msedge.exe', 'chrome.exe', 'brave.exe', 'samsunginternet.exe', 'opera.exe']:
+                    try:
+                        with winreg.OpenKey(hive, rf"Software\Microsoft\Windows\CurrentVersion\App Paths\{app_name}") as k:
+                            reg_path = winreg.QueryValueEx(k, '')[0].strip('"')
+                            if reg_path and reg_path not in candidates:
+                                candidates.append(reg_path)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
     for path in candidates:
         if os.path.isfile(path):
             return path
