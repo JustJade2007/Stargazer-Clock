@@ -59,6 +59,13 @@
 
       <!-- Utility actions -->
       <div class="nav-actions">
+        <!-- Live Weather & Location Chip -->
+        <button type="button" class="nav-weather-chip" id="nav-weather-badge" title="Live Weather & Solar Ephemeris • Click to configure location" aria-label="Weather and Location Info">
+          <span class="weather-chip-icon" id="nav-weather-icon">☀️</span>
+          <span class="weather-chip-temp" id="nav-weather-temp">--°</span>
+          <span class="weather-chip-city" id="nav-weather-city">Location</span>
+        </button>
+
         <button type="button" class="nav-action-btn" id="btn-popout" title="Pop Out Clock Window (Always on Top) [P]" aria-label="Pop Out Clock Window">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M15 3h6v6m-11 5L21 3m-3 10v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
@@ -83,6 +90,22 @@
         </button>
       </div>
     </header>
+
+    <!-- In-App Location & Solar Ephemeris Consent Card -->
+    <div id="location-consent-card" class="location-consent-banner hidden" role="region" aria-label="Location Permission Request">
+      <div class="consent-content">
+        <div class="consent-icon">🌌</div>
+        <div class="consent-text">
+          <h4 class="consent-title">Synchronize Sky, Solar & Weather</h4>
+          <p class="consent-desc">Enable location to calculate exact local sunrise & sunset times, real-time celestial transitions, and enjoy an ambient weather backdrop.</p>
+        </div>
+      </div>
+      <div class="consent-actions">
+        <button type="button" class="btn-action primary btn-sm" id="btn-consent-allow">Enable Location 📍</button>
+        <button type="button" class="btn-action secondary btn-sm" id="btn-consent-city">Select City</button>
+        <button type="button" class="btn-action outline btn-sm" id="btn-consent-dismiss">Maybe Later</button>
+      </div>
+    </div>
 
     <!-- Main Workspace Container -->
     <main class="main-display" id="main-display" role="main">
@@ -474,6 +497,47 @@
             </div>
           </div>
 
+          <!-- Location & Solar Ephemeris Weather -->
+          <div class="settings-section">
+            <h3 class="section-title">Location, Solar Times & Weather</h3>
+            <div class="settings-row">
+              <label>Current Location</label>
+              <div class="settings-col-right">
+                <span class="text-accent" id="setting-location-status">Location Not Set</span>
+                <button type="button" class="btn-action outline btn-xs" id="btn-setting-detect-loc">Detect Location 📍</button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <label for="setting-city-search">City Search</label>
+              <div class="city-search-container">
+                <input type="text" id="setting-city-search" class="text-input" placeholder="Type city (e.g. New York, Tokyo)..." autocomplete="off">
+                <div id="setting-city-results" class="city-search-results hidden"></div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <label>Quick Cities</label>
+              <div class="city-quick-pills" id="setting-quick-cities">
+                <button type="button" class="city-pill" data-city="New York">New York</button>
+                <button type="button" class="city-pill" data-city="London">London</button>
+                <button type="button" class="city-pill" data-city="Paris">Paris</button>
+                <button type="button" class="city-pill" data-city="Tokyo">Tokyo</button>
+                <button type="button" class="city-pill" data-city="Sydney">Sydney</button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <label for="setting-temp-unit">Temperature Unit</label>
+              <select id="setting-temp-unit" class="select-input">
+                <option value="auto" selected>Auto (System Locale)</option>
+                <option value="C">Celsius (°C)</option>
+                <option value="F">Fahrenheit (°F)</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <label for="setting-weather-backdrop">Dynamic Weather Particles & Atmosphere</label>
+              <input type="checkbox" id="setting-weather-backdrop" class="toggle-checkbox" checked>
+            </div>
+          </div>
+
           <!-- Celestial Pointer: Sun / Moon Phase -->
           <div class="settings-section">
             <h3 class="section-title">Celestial Pointer & Ephemeris</h3>
@@ -485,6 +549,10 @@
                 <option value="sun">Always Sun ☀️</option>
                 <option value="orb">Classic Glowing Orb ⚪</option>
               </select>
+            </div>
+            <div class="settings-row">
+              <span>Local Sunrise / Sunset</span>
+              <span class="text-accent" id="setting-solar-times-preview">🌅 --:--  •  🌇 --:--</span>
             </div>
             <div class="settings-row">
               <span>Current Moon Phase</span>
@@ -610,6 +678,8 @@
 
   <!-- Audio Chime & Core Scripts -->
   <script src="js/storage.js"></script>
+  <script src="js/ephemeris.js"></script>
+  <script src="js/weather.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/stars.js"></script>
   <script src="js/debug.js"></script>

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-04
+
+### Added
+- **Location-Based Dynamic Sun/Moon Transitions & Ambient Weather Backdrop (Issue #5)**:
+  - **Solar Ephemeris Engine (`js/ephemeris.js`)**: Implemented high-precision client-side NOAA astronomical algorithm to calculate local sunrise, sunset, solar noon, and civil dawn/dusk times completely offline with zero network latency.
+  - **Dynamic Sun/Moon Transitions (`js/semicircle.js`, `js/app.js`)**: Connected dial celestial pointer state to real-world local sunrise and sunset times, complete with a ~30-minute twilight/golden-hour corona flare and horizon glow.
+  - **Live Weather & Geolocation Engine (`js/weather.js`)**: Integrated keyless Open-Meteo weather API with 30-minute localStorage caching, offline fallback, HTML5 browser geolocation request workflow, and full city geocoding search plus offline major global cities dictionary.
+  - **Atmospheric Backdrop & Particle Engine (`js/stars.js`)**: Added dynamic particle effects directly on the cosmic canvas for rain streaks with ground impact ripples, gently fluttering snow, rolling misty clouds, and celestial thunderstorm lightning flashes.
+  - **Atmospheric Temperature Wash (`js/stars.js`)**: Deep space nebula dynamically adjusts ambient tone according to live temperature (icy glacial cyan for cold, cosmic indigo for mild, and warm solar amber for heat).
+  - **In-App Permission Consent Banner & UI (`index.html`, `css/style.css`, `js/app.js`)**: Elegant floating consent banner explaining benefits with "Enable Location", "Select City", and "Maybe Later" options. Added clickable top-nav weather badge and dedicated Settings section for location, city search, temperature units (°C / °F), and weather backdrop toggle.
+  - **Debug Simulation HUD (`js/debug.js`)**: Added weather condition chips (Clear, Clouds, Rain, Snow, Thunder, Fog) and simulated temperature slider (-20°C to 45°C) to allow instant testing and demonstration without waiting for weather changes.
+
 ## [0.7.4] - 2026-10-04
 
 ### Fixed
