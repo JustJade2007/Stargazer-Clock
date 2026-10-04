@@ -169,7 +169,8 @@ Outputs: `dist/Stargazer-Clock.exe` (Standalone windowed application with embedd
 - [x] Standalone desktop package build script (`dist/Stargazer-Clock.exe`).
 - [x] Pop out floating clock with OS-level always-on-top window pinning.
 - [x] Debug simulation engine for time warping, timezones, moon stages, and sun/moon overrides.
-- [ ] Automated GitHub Pages deployment workflow.
+- [x] Automated GitHub Pages deployment workflow.
+- [x] Location Based Moon/Sun/Temp/Weather Status
 
 ---
 
