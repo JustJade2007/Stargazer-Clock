@@ -31,6 +31,7 @@ def find_free_port():
 PINNED_HWNDS = set()
 PIN_LOCK = threading.Lock()
 GLOBAL_PIN_ACTIVE = False
+LAUNCHER_PORT = None
 
 if sys.platform == 'win32':
     import ctypes
@@ -111,21 +112,35 @@ if sys.platform == 'win32':
         try:
             if not user32.IsWindow(hwnd) or not user32.IsWindowVisible(hwnd):
                 return False
-            title = get_window_title(hwnd).lower()
             _, _, w, h = get_window_rect(hwnd)
-            if w <= 0 or h <= 0:
+            # Popout widget is compact (up to 850x750 for high DPI / custom sizing, but < 1120x780 main app)
+            if w < 40 or w > 880 or h < 40 or h > 750:
                 return False
 
-            # Explicit popout / picture-in-picture indicator in title
-            is_popout_title = any(k in title for k in ['popout', 'picture in picture', 'picture-in-picture', 'pictureinpicture', 'pip'])
-            if is_popout_title:
+            title = get_window_title(hwnd).lower()
+
+            # Main dashboard title should never be treated as popout
+            if 'celestial dashboard' in title:
+                return False
+
+            # 1. Chromium Document Picture-in-Picture window titles:
+            # Chromium PiP windows display the origin in the title bar (e.g., "127.0.0.1:54371" or "localhost")
+            if '127.0.0.1' in title or 'localhost' in title:
+                return True
+            if LAUNCHER_PORT and str(LAUNCHER_PORT) in title:
                 return True
 
-            # Compact size check: Popout window is ~270x230 or 270x135 (< 550x500)
-            is_compact = (w < 550) and (h < 500)
-            is_stargazer = 'stargazer' in title or 'clock' in title
-            if is_compact and is_stargazer:
+            # 2. Explicit keywords in title
+            if any(k in title for k in ['popout', 'picture in picture', 'picture-in-picture', 'pictureinpicture', 'pip']):
                 return True
+
+            # 3. Chromium top-level widget class check (Chrome_WidgetWin_1 / Edge_WidgetWin_1)
+            class_buf = ctypes.create_unicode_buffer(256)
+            user32.GetClassNameW(hwnd, class_buf, 256)
+            cname = class_buf.value.lower()
+            if 'chrome_widgetwin' in cname or 'edge_widgetwin' in cname:
+                if 'stargazer' not in title or 'popout' in title:
+                    return True
 
             return False
         except Exception:
@@ -140,9 +155,10 @@ if sys.platform == 'win32':
                 return False
             title = get_window_title(hwnd).lower()
             _, _, w, h = get_window_rect(hwnd)
-            # Main window is large (>= 550 width or >= 500 height)
-            is_large = (w >= 550) or (h >= 500)
-            return ('stargazer' in title) and is_large
+            # Main window is large (>= 700 width and >= 500 height)
+            is_large = (w >= 700) and (h >= 500)
+            is_stargazer = 'stargazer' in title or 'celestial dashboard' in title
+            return is_stargazer and is_large
         except Exception:
             return False
 
@@ -215,23 +231,20 @@ if sys.platform == 'win32':
         """Background daemon ensuring only the popout is pinned and stays topmost across focus changes."""
         while True:
             try:
-                time.sleep(0.3)
-                # Keep main window strictly non-topmost
-                unpin_main_windows()
+                time.sleep(0.2)
+                if not GLOBAL_PIN_ACTIVE:
+                    continue
 
                 with PIN_LOCK:
                     dead = []
                     for hwnd in list(PINNED_HWNDS):
                         if user32.IsWindow(hwnd) and user32.IsWindowVisible(hwnd):
                             if not is_popout_window(hwnd):
-                                # Not a popout window anymore! Unpin immediately.
                                 apply_window_pin(hwnd, False)
                                 dead.append(hwnd)
                                 continue
 
-                            # Re-assert topmost position in Z-order without activating
-                            # This ensures that when the user focuses any other app (Explorer, VS Code, Browser, etc.)
-                            # the pinned popout window stays on top without being pushed behind!
+                            # Re-assert topmost position in Z-order without stealing focus
                             user32.SetWindowPos(
                                 hwnd,
                                 HWND_TOPMOST,
@@ -243,13 +256,12 @@ if sys.platform == 'win32':
                     for d in dead:
                         PINNED_HWNDS.discard(d)
 
-                    # If global pin state is active, actively discover and pin any popout window
-                    if GLOBAL_PIN_ACTIVE:
+                    # If global pin is active but no HWND registered yet, discover and pin
+                    if not PINNED_HWNDS:
                         popouts = find_popout_windows()
                         for h in popouts:
-                            if h not in PINNED_HWNDS:
-                                apply_window_pin(h, True)
-                                PINNED_HWNDS.add(h)
+                            apply_window_pin(h, True)
+                            PINNED_HWNDS.add(h)
             except Exception:
                 pass
 
@@ -262,7 +274,7 @@ class QuietHandler(SimpleHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        global GLOBAL_PIN_ACTIVE
+        global GLOBAL_PIN_ACTIVE, LAUNCHER_PORT
         if self.path.startswith('/api/pin'):
             try:
                 import urllib.parse
@@ -270,6 +282,19 @@ class QuietHandler(SimpleHTTPRequestHandler):
                 params = urllib.parse.parse_qs(parsed.query)
                 pin_state = params.get('state', ['1'])[0] == '1'
                 GLOBAL_PIN_ACTIVE = pin_state
+
+                # Check client port if provided
+                client_port = params.get('port', [None])[0]
+                if client_port:
+                    try:
+                        LAUNCHER_PORT = int(client_port)
+                    except Exception:
+                        pass
+                elif not LAUNCHER_PORT:
+                    try:
+                        LAUNCHER_PORT = self.server.server_address[1]
+                    except Exception:
+                        pass
 
                 success = False
                 if sys.platform == 'win32':
@@ -281,6 +306,8 @@ class QuietHandler(SimpleHTTPRequestHandler):
                             for h in list(PINNED_HWNDS):
                                 apply_window_pin(h, False)
                             PINNED_HWNDS.clear()
+                        for h in find_popout_windows():
+                            apply_window_pin(h, False)
                         success = True
                     else:
                         def scan_and_apply():
@@ -315,6 +342,8 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 def start_server(base_dir, port):
     """Starts the local static file server."""
+    global LAUNCHER_PORT
+    LAUNCHER_PORT = port
     os.chdir(base_dir)
     server = ThreadingHTTPServer(('127.0.0.1', port), QuietHandler)
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)

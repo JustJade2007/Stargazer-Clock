@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.3] - 2026-10-04
+
+### Fixed
+- **Chromium Document Picture-in-Picture Origin Title Recognition & DPI Scaling (`desktop_launcher.py`, `js/popout.js`)**:
+  - Fixed an issue where the pinned popout window did not stay on top because Chromium's Document Picture-in-Picture native window sets its OS title to the origin/port (e.g. `127.0.0.1:<port>` or `localhost`), which was bypassed by previous title matching filters.
+  - Expanded physical window bounds matching up to `880x750` to fully support Windows high-DPI display scaling (125%, 150%, 175%, 200%) and user resizing without dropping topmost management.
+  - Removed origin patterns from `is_main_window()` to eliminate edge cases where large or scaled Document PiP windows were falsely classified as the main window and stripped of topmost status.
+  - Hardened `apply_window_pin()` using `SetWindowLongPtrW` with `SWP_FRAMECHANGED` and refined the background maintenance daemon to hold `HWND_TOPMOST` z-order priority across external application focus changes.
+  - Recompiled standalone executable `dist/Stargazer-Clock.exe` (9.91 MB) to incorporate all latest launcher and script fixes.
+
 ## [0.7.2] - 2026-10-04
 
 ### Fixed

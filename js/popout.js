@@ -751,13 +751,16 @@
           w = state.pipWindow.outerWidth || 270;
           h = state.pipWindow.outerHeight || 230;
         }
+        const port = window.location.port || '';
+        const host = window.location.host || '';
         const send = () => {
-          fetch(`/api/pin?state=${s}&title=Popout&w=${w}&h=${h}`, { method: 'GET' }).catch(() => {});
+          fetch(`/api/pin?state=${s}&title=Popout&w=${w}&h=${h}&port=${encodeURIComponent(port)}&host=${encodeURIComponent(host)}`, { method: 'GET' }).catch(() => {});
         };
         send();
         if (pinState) {
-          setTimeout(send, 200);
-          setTimeout(send, 600);
+          setTimeout(send, 100);
+          setTimeout(send, 300);
+          setTimeout(send, 700);
         }
       } catch (e) {}
     },
