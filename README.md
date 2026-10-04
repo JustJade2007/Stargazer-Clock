@@ -7,7 +7,7 @@
 > **A cosmic desktop backdrop & customizable semicircle clock designed for work sessions, long events, and watching time pass by.**
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Status: In Development](https://img.shields.io/badge/Status-In%20Development-orange.svg)](#roadmap)
+[![Status: v1.0.0 Production Release](https://img.shields.io/badge/Status-v1.0.0%20Production%20Release-brightgreen.svg)](#roadmap)
 [![Platform: Web | Desktop](https://img.shields.io/badge/Platform-Web%20%7C%20Windows%20(.exe)-purple.svg)](#deployment--packaging)
 
 ---
@@ -171,6 +171,7 @@ Outputs: `dist/Stargazer-Clock.exe` (Standalone windowed application with embedd
 - [x] Debug simulation engine for time warping, timezones, moon stages, and sun/moon overrides.
 - [x] Automated GitHub Pages deployment workflow.
 - [x] Location Based Moon/Sun/Temp/Weather Status
+- [x] Official v1.0.0 Production Release for Web & Desktop
 
 ---
 

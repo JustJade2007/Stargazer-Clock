@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-10-04
+
+### Added
+- **Official 1.0.0 Production Release for Web & Desktop**:
+  - **General Availability (GA)**: Official landmark v1.0.0 production release of Stargazer Clock, delivering a complete, zero-install, privacy-first web application hosted on GitHub Pages alongside a standalone Windows desktop companion executable (`dist/Stargazer-Clock.exe`).
+  - **Five Unified Timekeeping & Pacing Suites (`js/app.js`)**:
+    - **Standard Clock**: High-precision 12h/24h digital readout, date display, optional seconds, and versatile radial arc sweeps (24-hour day cycle, 12-hour cycle, or current hour).
+    - **Shift & Timeframe Tracker**: Workday and event progression tracking with custom start/end times, dynamic percentage progress fill, elapsed vs. remaining time calculations, and overtime indicators.
+    - **Dual-Mode Countdown Timer**: Fixed duration intervals (Pomodoro 25m, Short Break 5m, Rest 15m, Deep Work 45m, Sprint 60m, custom duration) and Time Until / Target Event countdowns (Noon, End of Day, Midnight, custom calendar dates) with synthetic Web Audio chime notifications.
+    - **Precision Millisecond Stopwatch**: High-refresh elapsed time counter with 60-second radial sweep dial, split lap tracking, and best/worst lap highlighting.
+    - **Combined Ambient Dashboard**: Multi-widget command center presenting a focal master dial alongside live peripheral mini-dials for all active timers, stopwatch, and shift status.
+  - **Cosmic Starfield & Ambient Particle Backdrop (`js/stars.js`)**:
+    - Multi-layered procedural starfield with twinkling stars, depth parallax motion, and dynamic streaking meteors with particle trails.
+    - Integrated atmospheric weather particle system rendering realistic falling rain with ground impact ripples, fluttering snowflakes, drifting misty cloud layers, and celestial thunderstorm lightning flashes.
+    - Dynamic atmospheric temperature tinting shifting cosmic nebula tones based on live ambient temperature (icy glacial cyan for cold, cosmic indigo for mild, and warm solar amber for heat).
+  - **Astronomical Solar Ephemeris & Dynamic Celestial Pointer (`js/ephemeris.js`, `js/semicircle.js`)**:
+    - Built-in, zero-dependency NOAA solar calculation algorithm computing exact local sunrise, sunset, solar noon, and civil dawn/dusk times completely offline.
+    - Dynamic radial pointer that seamlessly transitions between a radiant daytime Sun (with 30-minute twilight/golden-hour corona flare) and a detailed nighttime Moon.
+    - Realistic lunar phase engine rendering exact physical illumination fractions, craters, and terminator shading across 8 astronomical phases.
+  - **Live Geolocation & Weather Engine (`js/weather.js`)**:
+    - Automatic HTML5 geolocation with privacy-first in-app consent banner, Open-Meteo live weather data integration, 30-minute smart caching, city geocoding search, and an offline major global cities dictionary.
+  - **Always-on-Top Floating Popout Clock (`js/popout.js`, `desktop_launcher.py`)**:
+    - Modern Chromium Document Picture-in-Picture API (`documentPictureInPicture.requestWindow`) allowing the clock to float above all windows, IDEs, and full-screen games.
+    - Dual view mode toggle (`⌒ Semicircle` ⇄ `𝐓 Text Only`) with dynamic auto-resizing.
+    - Win32 desktop pinning daemon maintaining `HWND_TOPMOST` z-order priority across external application focus changes.
+    - In-popout interactive mode switcher, timer/stopwatch controls, and center metric swapping.
+  - **Interactive 1-Click Center Metric Swapping (`js/app.js`)**:
+    - Seamlessly cycle the central display between **Current Time**, **Time Left / Remaining**, and **Percentage (%)** via direct clicks on the dial numbers, segmented UI controls, or the <kbd>T</kbd> keyboard shortcut.
+  - **Debug & Time Warp Simulation Suite (`js/debug.js`)**:
+    - Draggable glassmorphic HUD panel (<kbd>D</kbd> shortcut or top nav 🛠️ button) enabling time acceleration (0x freeze up to 1440x warp speed), manual date/time overrides, global timezone conversions, lunar phase sliders, weather condition simulations, and temperature testing.
+    - Floating cosmic indicator banner with one-click return to live system time.
+  - **Zero-Dependency Web Audio Notifications (`js/audio.js`)**:
+    - Harmonic chord chime bells synthesized entirely via the Web Audio API with zero audio file downloads or bandwidth overhead.
+  - **100% Client-Side Privacy & Persistence (`js/storage.js`)**:
+    - Local state synchronization across cookies and `localStorage` with zero accounts, no cloud database requirements, and one-click JSON export/import.
+    - Five tailored celestial visual themes: Starlight Cyan, Nebula Purple, Solar Gold, Aurora Green, and Supernova Red.
+  - **Cross-Platform Delivery**:
+    - Instant browser access via GitHub Pages with responsive high-DPI canvas rendering.
+    - Standalone single-file Windows executable (`dist/Stargazer-Clock.exe`) with embedded assets and dedicated desktop launcher.
+
 ## [0.8.0] - 2026-10-04
 
 ### Added
