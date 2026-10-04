@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.4] - 2026-10-04
+
+### Fixed
+- **Pop-out Window Animated Clock Rendering (Issue #8 - `js/semicircle.js`, `js/popout.js`)**:
+  - Resolved bug where the floating pop-out window only rendered text and failed to display the animated semicircle clock component.
+  - Fixed constructor namespace mismatch where `js/popout.js` was querying `window.SemicircleDial`, while `js/semicircle.js` exported `window.StargazerDial`. Added dual global exports (`window.StargazerDial` and `window.SemicircleDial`) and updated `initPipDial()` to fallback safely.
+  - Updated `SemicircleDial` to bind window resize listeners dynamically to the canvas's containing window context (`ownerDocument.defaultView`), ensuring Document Picture-in-Picture windows calculate proper high-DPI canvas dimensions rather than defaulting to unstyled 300×150 buffers.
+  - Implemented idempotent `ctx.setTransform(dpr, 0, 0, dpr, 0, 0)` for context scaling and added formal `destroy()` cleanup.
+  - Ensured the celestial pointer (Sun / Moon / Orb) is always rendered at the starting angle (`Math.PI`) even when progress is 0.0% (e.g. before a shift begins or on countdown reset), preventing empty tracks.
+  - Added automatic theme color synchronization (`setColors`) and layout settle callbacks for the popout dial.
+  - Recompiled standalone executable `dist/Stargazer-Clock.exe` (9.91 MB).
+
 ## [0.7.3] - 2026-10-04
 
 ### Fixed

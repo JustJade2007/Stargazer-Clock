@@ -205,17 +205,42 @@
      */
     initPipDial(pipWin) {
       const canvas = pipWin.document.getElementById('dial-canvas-popout');
-      if (canvas && window.SemicircleDial) {
-        state.dialPopout = new window.SemicircleDial(canvas, {
-          radiusScale: 0.88,
-          lineWidth: 14,
-          trackWidth: 8,
+      const DialClass = window.StargazerDial || window.SemicircleDial;
+      if (canvas && DialClass) {
+        state.dialPopout = new DialClass(canvas, {
+          isMini: true,
           showTicks: true,
-          tickCount: 20,
-          needleLength: 0.88,
-          showGlow: true
+          showLabels: false,
+          lineWidth: 8,
+          pointerRadius: 7,
+          trackColor: 'rgba(255, 255, 255, 0.14)',
+          pointerMode: (window.StargazerApp && window.StargazerApp.getPointerMode) ? window.StargazerApp.getPointerMode() : 'auto'
         });
-        state.dialPopout.init();
+
+        // Sync colors with current theme
+        const theme = document.body.getAttribute('data-theme') || 'cyan';
+        const themeColors = {
+          cyan: { glow: '#00f2fe', start: '#00f2fe', end: '#4facfe' },
+          violet: { glow: '#b388ff', start: '#b388ff', end: '#7c4dff' },
+          amber: { glow: '#ffb300', start: '#ffb300', end: '#ff6f00' },
+          emerald: { glow: '#00e676', start: '#00e676', end: '#00b0ff' },
+          crimson: { glow: '#ff5252', start: '#ff5252', end: '#ff1744' }
+        };
+        const c = themeColors[theme] || themeColors.cyan;
+        state.dialPopout.setColors(c.glow, c.start, c.end);
+
+        // Bind resize listener directly to the PiP window context
+        pipWin.addEventListener('resize', () => {
+          if (state.dialPopout) state.dialPopout.resize();
+        });
+
+        // Trigger resize after layout passes
+        setTimeout(() => {
+          if (state.dialPopout) state.dialPopout.resize();
+        }, 40);
+        setTimeout(() => {
+          if (state.dialPopout) state.dialPopout.resize();
+        }, 150);
       }
     },
 

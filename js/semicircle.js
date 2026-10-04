@@ -121,19 +121,31 @@
     init() {
       this.resize();
       this.handleResize = this.resize.bind(this);
-      window.addEventListener('resize', this.handleResize);
+      const win = (this.canvas && this.canvas.ownerDocument && this.canvas.ownerDocument.defaultView) || window;
+      win.addEventListener('resize', this.handleResize);
+    }
+
+    destroy() {
+      if (this.handleResize) {
+        const win = (this.canvas && this.canvas.ownerDocument && this.canvas.ownerDocument.defaultView) || window;
+        win.removeEventListener('resize', this.handleResize);
+        this.handleResize = null;
+      }
     }
 
     resize() {
       if (!this.canvas) return;
       const rect = this.canvas.getBoundingClientRect();
+      const win = (this.canvas.ownerDocument && this.canvas.ownerDocument.defaultView) || window;
       this.width = rect.width || (this.options.isMini ? 220 : 580);
       this.height = rect.height || (this.options.isMini ? 90 : 340);
-      this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      this.dpr = Math.min(win.devicePixelRatio || 1, 2);
 
-      this.canvas.width = this.width * this.dpr;
-      this.canvas.height = this.height * this.dpr;
-      this.ctx.scale(this.dpr, this.dpr);
+      this.canvas.width = Math.round(this.width * this.dpr);
+      this.canvas.height = Math.round(this.height * this.dpr);
+      if (this.ctx) {
+        this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      }
 
       this.render();
     }
@@ -248,10 +260,9 @@
       }
 
       // 3. Draw Active Progress Arc
-      if (this.currentProgress > 0.001) {
-        // Progress angle sweeps clockwise from Math.PI (left, 0%) towards 2*Math.PI (right, 100%)
-        const currentAngle = Math.PI + (this.currentProgress * Math.PI);
+      const currentAngle = Math.PI + (this.currentProgress * Math.PI);
 
+      if (this.currentProgress > 0.001) {
         // Gradient
         const grad = ctx.createLinearGradient(centerX - radius, centerY, centerX + radius, centerY);
         grad.addColorStop(0, this.options.arcColorStart);
@@ -277,13 +288,13 @@
         ctx.lineWidth = this.options.lineWidth;
         ctx.lineCap = 'round';
         ctx.stroke();
-
-        // 4. Indicator Pointer: Celestial Sun / Moon / Orb
-        const pointerX = centerX + Math.cos(currentAngle) * radius;
-        const pointerY = centerY + Math.sin(currentAngle) * radius;
-
-        this.drawPointer(ctx, pointerX, pointerY, isMini);
       }
+
+      // 4. Indicator Pointer: Celestial Sun / Moon / Orb (always rendered along arc)
+      const pointerX = centerX + Math.cos(currentAngle) * radius;
+      const pointerY = centerY + Math.sin(currentAngle) * radius;
+
+      this.drawPointer(ctx, pointerX, pointerY, isMini);
     }
 
     /**
@@ -485,6 +496,7 @@
   }
 
   window.StargazerDial = SemicircleDial;
+  window.SemicircleDial = SemicircleDial;
   window.StargazerMoon = {
     calculateMoonPhase,
     isDaytime
